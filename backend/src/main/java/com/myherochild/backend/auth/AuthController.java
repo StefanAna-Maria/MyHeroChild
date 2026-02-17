@@ -7,6 +7,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import com.myherochild.backend.security.JwtService;
+import com.myherochild.backend.config.AppProperties;
+import java.util.UUID;
 
 
 import java.time.LocalDateTime;
@@ -19,26 +21,77 @@ public class AuthController {
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
+    private final AppProperties appProperties;
 
 
     @PostMapping("/register")
     public String register(@Valid @RequestBody RegisterRequest request) {
 
-        if (userRepository.findByEmail(request.getEmail()).isPresent()) {
-            return "Email already exists";
+        if (!request.getPassword().equals(request.getConfirmPassword())) {
+            throw new RuntimeException("Passwords do not match");
         }
 
-        User user = User.builder()
-                .email(request.getEmail())
-                .passwordHash(passwordEncoder.encode(request.getPassword()))
-                .role(request.getRole())
-                .createdAt(LocalDateTime.now())
-                .build();
+        if (userRepository.findByUsername(request.getUsername()).isPresent()) {
+            throw new RuntimeException("Username already exists");
+        }
+
+        if (request.getRole() == null) {
+            throw new RuntimeException("Role is required");
+        }
+
+        User user = new User();
+        user.setUsername(request.getUsername());
+        user.setPasswordHash(passwordEncoder.encode(request.getPassword()));
+        user.setRole(request.getRole());
+        user.setCreatedAt(LocalDateTime.now());
+        user.setLevel(1);
+        user.setXp(0);
+        user.setRewardPoints(0);
+
+        switch (request.getRole()) {
+
+            case PARENT -> {
+                if (request.getEmail() == null || request.getEmail().isBlank()) {
+                    throw new RuntimeException("Email is required for parent");
+                }
+
+                user.setEmail(request.getEmail());
+                user.setParentCode(generateParentCode());
+            }
+
+            case ADMIN -> {
+                if (request.getEmail() == null || request.getEmail().isBlank()) {
+                    throw new RuntimeException("Email is required for admin");
+                }
+
+                if (!request.getAdminCode().equals(appProperties.getAdminCode())) {
+                    throw new RuntimeException("Invalid admin code");
+                }
+
+                user.setEmail(request.getEmail());
+            }
+
+            case CHILD -> {
+                if (request.getParentCode() == null || request.getParentCode().isBlank()) {
+                    throw new RuntimeException("Parent code is required");
+                }
+
+                User parent = userRepository.findByParentCode(request.getParentCode())
+                        .orElseThrow(() -> new RuntimeException("Invalid parent code"));
+
+                user.setParent(parent);
+
+                if (request.getEmail() != null && !request.getEmail().isBlank()) {
+                    user.setEmail(request.getEmail());
+                }
+            }
+        }
 
         userRepository.save(user);
 
         return "User registered successfully";
     }
+
 
     @PostMapping("/login")
     public String login(@Valid @RequestBody LoginRequest request) {
@@ -51,6 +104,14 @@ public class AuthController {
         }
 
         return jwtService.generateToken(user.getEmail(), user.getRole().name());
+    }
+
+    private String generateParentCode() {
+    return UUID.randomUUID()
+            .toString()
+            .replace("-", "")
+            .substring(0, 8)
+            .toUpperCase();
     }
 }
 

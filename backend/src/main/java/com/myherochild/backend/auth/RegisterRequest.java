@@ -10,12 +10,19 @@ import lombok.Setter;
 @Setter
 public class RegisterRequest {
 
-    @Email
     @NotBlank
+    private String username;
+
     private String email;
 
     @NotBlank
     private String password;
 
+    @NotBlank
+    private String confirmPassword;
+
     private UserRole role;
+
+    private String parentCode; 
+    private String adminCode;
 }

@@ -1,5 +1,7 @@
 package com.myherochild.backend.security;
 
+import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.Jws;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -24,5 +26,12 @@ public class JwtService {
                 .setExpiration(new Date(System.currentTimeMillis() + expiration))
                 .signWith(key)
                 .compact();
+    }
+
+    public Jws<Claims> parseToken(String token) {
+    return Jwts.parserBuilder()
+            .setSigningKey(key)
+            .build()
+            .parseClaimsJws(token);
     }
 }

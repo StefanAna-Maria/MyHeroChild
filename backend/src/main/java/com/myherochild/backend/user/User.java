@@ -18,7 +18,7 @@ public class User {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, unique = true)
+    @Column(unique = true)
     private String email;
 
     @Column(name = "password_hash", nullable = false)
@@ -30,4 +30,27 @@ public class User {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(nullable = false, unique = true)
+    private String username;
+
+    @Column(unique = true)
+    private String parentCode;
+
+    @ManyToOne
+    @JoinColumn(name = "parent_id")
+    private User parent;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private int level = 1;
+
+
+    @Builder.Default
+    @Column(nullable = false)
+    private int xp = 0;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private int rewardPoints = 0;
 }
