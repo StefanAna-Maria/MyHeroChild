@@ -96,14 +96,15 @@ public class AuthController {
     @PostMapping("/login")
     public String login(@Valid @RequestBody LoginRequest request) {
 
-        User user = userRepository.findByEmail(request.getEmail())
+        User user = userRepository.findByUsername(request.getIdentifier())
+                .or(() -> userRepository.findByEmail(request.getIdentifier()))
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
             throw new RuntimeException("Invalid password");
         }
 
-        return jwtService.generateToken(user.getEmail(), user.getRole().name());
+        return jwtService.generateToken(user.getUsername(), user.getRole().name());
     }
 
     private String generateParentCode() {
