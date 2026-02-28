@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: myherochild_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: myherochild
+      POSTGRES_USER: myherochild
+      POSTGRES_PASSWORD: myherochild
+    ports:
+      - "5432:5432"
+    volumes:
+      - myherochild_pg:/var/lib/postgresql/data
+
+volumes:
+  myherochild_pg:
