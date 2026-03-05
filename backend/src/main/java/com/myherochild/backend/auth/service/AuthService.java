@@ -2,12 +2,12 @@ package com.myherochild.backend.auth.service;
 
 import com.myherochild.backend.auth.LoginRequest;
 import com.myherochild.backend.auth.RegisterRequest;
-import com.myherochild.backend.common.dto.ApiResponse;
+import com.myherochild.backend.auth.dto.RegisterResponse;
+import com.myherochild.backend.common.exception.BusinessException;
 import com.myherochild.backend.config.AppProperties;
 import com.myherochild.backend.security.JwtService;
 import com.myherochild.backend.user.User;
 import com.myherochild.backend.user.UserRepository;
-import com.myherochild.backend.user.UserRole;
 
 import lombok.RequiredArgsConstructor;
 
@@ -26,18 +26,18 @@ public class AuthService {
     private final JwtService jwtService;
     private final AppProperties appProperties;
 
-    public ApiResponse<String> register(RegisterRequest request) {
+    public RegisterResponse register(RegisterRequest request) {
 
         if (!request.getPassword().equals(request.getConfirmPassword())) {
-            throw new RuntimeException("Passwords do not match");
+            throw new BusinessException("Passwords do not match");
         }
 
         if (userRepository.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new BusinessException("Username already exists");
         }
 
         if (request.getRole() == null) {
-            throw new RuntimeException("Role is required");
+            throw new BusinessException("Role is required");
         }
 
         User user = new User();
@@ -49,26 +49,30 @@ public class AuthService {
         user.setXp(0);
         user.setRewardPoints(0);
 
+        String parentCode = null;
+
         switch (request.getRole()) {
 
             case PARENT -> {
 
                 if (request.getEmail() == null || request.getEmail().isBlank()) {
-                    throw new RuntimeException("Email is required for parent");
+                    throw new BusinessException("Email is required for parent");
                 }
 
                 user.setEmail(request.getEmail());
-                user.setParentCode(generateParentCode());
+
+                parentCode = generateParentCode();
+                user.setParentCode(parentCode);
             }
 
             case ADMIN -> {
 
                 if (request.getEmail() == null || request.getEmail().isBlank()) {
-                    throw new RuntimeException("Email is required for admin");
+                    throw new BusinessException("Email is required for admin");
                 }
 
                 if (!request.getAdminCode().equals(appProperties.getAdminCode())) {
-                    throw new RuntimeException("Invalid admin code");
+                    throw new BusinessException("Invalid admin code");
                 }
 
                 user.setEmail(request.getEmail());
@@ -77,11 +81,11 @@ public class AuthService {
             case CHILD -> {
 
                 if (request.getParentCode() == null || request.getParentCode().isBlank()) {
-                    throw new RuntimeException("Parent code is required");
+                    throw new BusinessException("Parent code is required");
                 }
 
                 User parent = userRepository.findByParentCode(request.getParentCode())
-                        .orElseThrow(() -> new RuntimeException("Invalid parent code"));
+                        .orElseThrow(() -> new BusinessException("Invalid parent code"));
 
                 user.setParent(parent);
 
@@ -93,25 +97,25 @@ public class AuthService {
 
         userRepository.save(user);
 
-        return ApiResponse.success("User registered successfully", null);
+        return RegisterResponse.builder()
+                .parentCode(parentCode)
+                .build();
     }
 
-    public ApiResponse<String> login(LoginRequest request) {
+    public String login(LoginRequest request) {
 
         User user = userRepository.findByUsername(request.getIdentifier())
                 .or(() -> userRepository.findByEmail(request.getIdentifier()))
-                .orElseThrow(() -> new RuntimeException("User not found"));
+                .orElseThrow(() -> new BusinessException("User not found"));
 
         if (!passwordEncoder.matches(request.getPassword(), user.getPasswordHash())) {
-            throw new RuntimeException("Invalid password");
+            throw new BusinessException("Invalid password");
         }
 
-        String token = jwtService.generateToken(
+        return jwtService.generateToken(
                 user.getUsername(),
                 user.getRole().name()
         );
-
-        return ApiResponse.success("Login successful", token);
     }
 
     private String generateParentCode() {

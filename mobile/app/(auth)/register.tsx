@@ -30,7 +30,7 @@ export default function Register() {
     }
 
     try {
-      await api.post("/auth/register", {
+      const res = await api.post("/auth/register", {
         username,
         email: email || null,
         password,
@@ -40,10 +40,24 @@ export default function Register() {
         adminCode: role === "ADMIN" ? adminCode : null,
       });
 
-      Alert.alert("Success", "Account created");
+      const generatedParentCode = res.data.data?.parentCode;
+
+      if (generatedParentCode) {
+        Alert.alert(
+          "Parent code generated",
+          `Your parent code is: ${generatedParentCode}\n\n Your child will need it to register.`
+        );
+      } else {
+        Alert.alert("Success", "Account created");
+      }
+
       router.replace("/(auth)/login");
+
     } catch (error: any) {
-      Alert.alert("Error", "Registration failed");
+      Alert.alert(
+        "Error",
+        error.response?.data?.message || "Registration failed"
+      );
     }
   };
 
