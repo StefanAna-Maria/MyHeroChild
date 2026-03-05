@@ -15,7 +15,8 @@ export default function Login() {
     try {
       setLoading(true);
       const res = await api.post("/auth/login", { identifier, password });
-      const token = res.data; // backend returneaza string JWT
+      const token = res.data.data; // backend returneaza string JWT
+      if (!token) throw new Error("Token missing");
       await login(token);
       // redirect e facut automat de AuthGate
     } catch (e: any) {
