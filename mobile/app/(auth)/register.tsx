@@ -95,15 +95,14 @@ export default function Register() {
         onChangeText={setUsername}
       />
 
-      {role !== "CHILD" && (
-        <TextInput
-          style={s.input}
-          placeholder="Email"
-          value={email}
-          onChangeText={setEmail}
-          autoCapitalize="none"
-        />
-      )}
+      <TextInput
+        style={s.input}
+        placeholder={role === "CHILD" ? "Email (optional)" : "Email"}
+        value={email}
+        onChangeText={setEmail}
+        autoCapitalize="none"
+        keyboardType="email-address"
+      />
 
       {role === "CHILD" && (
         <TextInput

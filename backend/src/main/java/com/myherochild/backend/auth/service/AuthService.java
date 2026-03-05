@@ -36,6 +36,12 @@ public class AuthService {
             throw new BusinessException("Username already exists");
         }
 
+        if (request.getEmail() != null && !request.getEmail().isBlank()) {
+            if (userRepository.findByEmail(request.getEmail()).isPresent()) {
+                throw new BusinessException("Email address already in use");
+            }
+        }
+
         if (request.getRole() == null) {
             throw new BusinessException("Role is required");
         }
@@ -71,8 +77,14 @@ public class AuthService {
                     throw new BusinessException("Email is required for admin");
                 }
 
-                if (!request.getAdminCode().equals(appProperties.getAdminCode())) {
-                    throw new BusinessException("Invalid admin code");
+                String adminCode = request.getAdminCode();
+
+                if (adminCode == null || adminCode.isBlank()) {
+                    throw new BusinessException("Admin code is required");
+                }
+
+                if (!adminCode.equals(appProperties.getAdminCode())) {
+                    throw new BusinessException("Incorrect admin code");
                 }
 
                 user.setEmail(request.getEmail());
