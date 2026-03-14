@@ -53,4 +53,8 @@ public class User {
     @Builder.Default
     @Column(nullable = false)
     private int rewardPoints = 0;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private String avatar = "robot";
 }

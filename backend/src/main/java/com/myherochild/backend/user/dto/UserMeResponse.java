@@ -15,5 +15,5 @@ public class UserMeResponse {
     private int level;
     private int xp;
     private int rewardPoints;
-
+    private String avatar;
 }

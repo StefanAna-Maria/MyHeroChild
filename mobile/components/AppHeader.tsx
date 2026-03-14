@@ -1,8 +1,11 @@
 import { View, Text, StyleSheet, Animated } from "react-native";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useTheme } from "../src/context/ThemeContext";
 import { useUser } from "../src/context/UserContext";
+import { Image, Pressable } from "react-native";
+import { avatars, AvatarType } from "../constants/avatars";
+import AvatarPicker from "./AvatarPicker";
 
 export default function AppHeader() {
 
@@ -10,9 +13,15 @@ export default function AppHeader() {
   const { user } = useUser();
 
   const progressAnim = useRef(new Animated.Value(0)).current;
+  const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
 
   const xp = user?.xp ?? 0;
   const xpNeeded = 100;
+
+  const openAvatarSelector = () => {
+    console.log("Open avatar selector");
+    setAvatarPickerVisible(true);
+  };
 
   useEffect(() => {
 
@@ -37,9 +46,18 @@ export default function AppHeader() {
   return (
     <View style={[s.container, { backgroundColor: theme.colors.surface }]}>
 
-      <Text style={[s.username, { color: theme.colors.text }]}>
-        {username}
-      </Text>
+        <View style={s.topRow}>
+            <Pressable onPress={openAvatarSelector}>
+            <Image
+                source={avatars[user.avatar as AvatarType]}
+                style={s.avatar}
+            />
+            </Pressable>
+
+            <Text style={[s.username, { color: theme.colors.text }]}>
+            {username}
+            </Text>
+        </View>
 
       {role === "CHILD" && (
 
@@ -71,6 +89,15 @@ export default function AppHeader() {
 
       )}
 
+        <AvatarPicker
+            visible={avatarPickerVisible}
+            onClose={() => setAvatarPickerVisible(false)}
+            onSelect={(avatar) => {
+                console.log("Selected avatar:", avatar);
+                setAvatarPickerVisible(false);
+            }}
+        />
+
     </View>
   );
 }
@@ -81,6 +108,18 @@ const s = StyleSheet.create({
     paddingTop: 60,
     paddingBottom: 18,
     paddingHorizontal: 20
+  },
+
+  topRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10
+  },
+
+  avatar: {
+    width: 42,
+    height: 42,
+    borderRadius: 21
   },
 
   username: {

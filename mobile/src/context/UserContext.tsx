@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../auth/AuthContext";
+import { AvatarType } from "@/constants/avatars";
 
 type User = {
   username: string;
@@ -8,6 +9,7 @@ type User = {
   level: number;
   xp: number;
   rewardPoints: number;
+    avatar: AvatarType;
 };
 
 type UserContextType = {
