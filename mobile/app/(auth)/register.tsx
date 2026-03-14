@@ -35,9 +35,11 @@ export default function Register() {
 
   const toastAnim = useRef(new Animated.Value(-120)).current;
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"warning" | "success" | "error">("warning");
 
-  const showToast = (message: string) => {
+  const showToast = (message: string, type: "warning" | "success" | "error" = "warning") => {
     setToastMessage(message);
+    setToastType(type);
 
     Animated.timing(toastAnim, {
       toValue: 0,
@@ -51,14 +53,14 @@ export default function Register() {
         duration: 300,
         useNativeDriver: true,
       }).start(() => setToastMessage(null));
-    }, 7000);
+    }, 4000);
   };
 
   /* ---------------- REGISTER ---------------- */
 
   const handleRegister = async () => {
     if (password !== confirmPassword) {
-      showToast("Passwords do not match");
+      showToast("Passwords do not match", "warning");
       return;
     }
 
@@ -77,10 +79,10 @@ export default function Register() {
 
       if (generatedParentCode) {
         showToast(
-          `Your parent code is: ${generatedParentCode}. Your child will need it to register.`
+          `Your parent code is: ${generatedParentCode}. Your child will need it to register.`, "success"
         );
       } else {
-        showToast("Account created successfully");
+        showToast("Account created successfully", "success");
       }
 
       setTimeout(() => {
@@ -89,7 +91,7 @@ export default function Register() {
 
     } catch (error: any) {
       showToast(
-        error.response?.data?.message || "Registration failed"
+        error.response?.data?.message || "Registration failed", "error"
       );
     }
   };
@@ -112,17 +114,30 @@ export default function Register() {
 
       {/* TOAST */}
       {toastMessage && (
-        <Animated.View
-          style={[
-            s.toast,
-            { transform: [{ translateY: toastAnim }] }
-          ]}
-        >
+          <Animated.View
+            style={[
+              s.toast,
+              s[`toast_${toastType}`],
+              { transform: [{ translateY: toastAnim }] }
+            ]}
+          >
+
           <Ionicons
-            //name="warning"
-            name="warning-outline"
-            size={34}
-            color="#5A3E00"
+            name={
+              toastType === "success"
+                ? "checkmark-circle"
+                : toastType === "error"
+                ? "close-circle"
+                : "warning-outline"
+            }
+            size={36}
+            color={
+              toastType === "success"
+                ? "#14532D"
+                : toastType === "error"
+                ? "#7F1D1D"
+                : "#5A3E00"
+            }
             style={s.toastIcon}
           />
 
@@ -289,8 +304,8 @@ const s = StyleSheet.create({
     top: 60,
     left: 20,
     right: 20,
-    backgroundColor: "#ffcd71e5",
-    borderColor: "#cca864f1",
+    //backgroundColor: "#ffcd71e5",
+    //borderColor: "#cca864f1",
     borderWidth: 3,
     padding: 14,
     borderRadius: 12,
@@ -299,12 +314,13 @@ const s = StyleSheet.create({
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 10,
+    alignItems: "center",
   },
 
   toastIcon: {
-    alignSelf: "center",
+    //alignSelf: "center",
     marginBottom: 6,
-    color: "#5A3E00",
+    //color: "#5A3E00",
   },
 
   toastText: {
@@ -312,6 +328,21 @@ const s = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     textAlign: "center",
+  },
+
+  toast_warning: {
+    backgroundColor: "#ffcd71e5",
+    borderColor: "#cca864f1",
+  },
+
+  toast_success: {
+    backgroundColor: "#BBF7D0",
+    borderColor: "#4ADE80",
+  },
+
+  toast_error: {
+    backgroundColor: "#FECACA",
+    borderColor: "#f38181",
   },
 
   /* -------- EXISTING UI -------- */

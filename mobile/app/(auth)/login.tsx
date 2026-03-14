@@ -1,19 +1,20 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import {
   View,
   Text,
   TextInput,
   Pressable,
-  Alert,
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
-  ScrollView
+  ScrollView,
+  Animated
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { api } from "../../src/services/api";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Login() {
   const { login } = useAuth();
@@ -22,7 +23,36 @@ export default function Login() {
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
+  const [loginError, setLoginError] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+
+  const toastAnim = useRef(new Animated.Value(-120)).current;
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<"error" | "success" | "warning">("error");
+
+  const showToast = (message: string, type: "error" | "success" | "warning" = "error") => {
+    setToastMessage(message);
+    setToastType(type);
+
+    Animated.timing(toastAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+
+    setTimeout(() => {
+      Animated.timing(toastAnim, {
+        toValue: -120,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setToastMessage(null));
+    }, 4000);
+  };
+
   const handleLogin = async () => {
+
+    setLoginError(false);
+
     try {
       setLoading(true);
       const res = await api.post("/auth/login", { identifier, password });
@@ -32,7 +62,8 @@ export default function Login() {
 
       await login(token);
     } catch (e: any) {
-      Alert.alert("Login failed", "Verifică user/pass.");
+      setLoginError(true);
+      showToast("Login failed. Check username or password.", "error");
     } finally {
       setLoading(false);
     }
@@ -40,17 +71,33 @@ export default function Login() {
 
   return (
     <LinearGradient colors={["#7AA9FF", "#6C63FF"]} style={{ flex: 1 }}>
+
+      {toastMessage && (
+        <Animated.View
+          style={[
+            s.toast,
+            s[`toast_${toastType}`],
+            { transform: [{ translateY: toastAnim }] }
+          ]}
+        >
+          <Ionicons
+            name="close-circle"
+            size={36}
+            color="#7F1D1D"
+            style={s.toastIcon}
+          />
+          <Text style={s.toastText}>{toastMessage}</Text>
+        </Animated.View>
+      )}
+
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView contentContainerStyle={s.container}>
 
-          {/* Top blobs */}
           <View style={s.blobTopLeft} />
           <View style={s.blobTopRight} />
-
-          {/* Bottom blob */}
           <View style={s.blobBottom} />
 
           <View style={s.header}>
@@ -61,7 +108,10 @@ export default function Login() {
           <View style={s.card}>
 
             <TextInput
-              style={s.input}
+              style={[
+                s.input,
+                loginError && s.inputError
+              ]}
               placeholder="Username or Email"
               placeholderTextColor="#7b8794"
               value={identifier}
@@ -69,14 +119,31 @@ export default function Login() {
               autoCapitalize="none"
             />
 
-            <TextInput
-              style={s.input}
-              placeholder="Password"
-              placeholderTextColor="#7b8794"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-            />
+            <View style={s.passwordContainer}>
+              <TextInput
+                style={[
+                  s.input,
+                  loginError && s.inputError,
+                  { flex: 1 }
+                ]}
+                placeholder="Password"
+                placeholderTextColor="#7b8794"
+                value={password}
+                onChangeText={setPassword}
+                secureTextEntry={!showPassword}
+              />
+
+              <Pressable
+                style={s.eyeButton}
+                onPress={() => setShowPassword(!showPassword)}
+              >
+                <Ionicons
+                  name={showPassword ? "eye-off-outline" : "eye-outline"}
+                  size={22}
+                  color="#6C63FF"
+                />
+              </Pressable>
+            </View>
 
             <Pressable
               style={[s.btn, loading && { opacity: 0.7 }]}
@@ -147,6 +214,21 @@ const s = StyleSheet.create({
     fontSize: 16,
   },
 
+  inputError: {
+    borderWidth: 2,
+    borderColor: "#F87171",
+  },
+
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  eyeButton: {
+    position: "absolute",
+    right: 14,
+  },
+
   btn: {
     backgroundColor: "#6C63FF",
     padding: 16,
@@ -194,6 +276,44 @@ const s = StyleSheet.create({
     backgroundColor: "rgba(255,255,255,0.18)",
     bottom: -160,
     right: 150,
+  },
+
+  toast: {
+    position: "absolute",
+    top: 60,
+    left: 20,
+    right: 20,
+    padding: 16,
+    borderRadius: 14,
+    borderWidth: 2,
+    zIndex: 999,
+    elevation: 10,
+    alignItems: "center",
+  },
+
+  toast_error: {
+    backgroundColor: "#FECACA",
+    borderColor: "#F87171",
+  },
+
+  toast_success: {
+    backgroundColor: "#BBF7D0",
+    borderColor: "#4ADE80",
+  },
+
+  toast_warning: {
+    backgroundColor: "#F3C979",
+    borderColor: "#E2AE4A",
+  },
+
+  toastIcon: {
+    marginBottom: 6,
+  },
+
+  toastText: {
+    color: "#7F1D1D",
+    fontWeight: "600",
+    textAlign: "center",
   },
 
 });
