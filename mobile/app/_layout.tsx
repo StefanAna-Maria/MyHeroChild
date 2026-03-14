@@ -1,33 +1,19 @@
-import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
-import { AuthProvider, useAuth } from "../src/auth/AuthContext";
-
-function AuthGate() {
-  const { isReady, token } = useAuth();
-  const segments = useSegments();
-  const router = useRouter();
-
-  useEffect(() => {
-    if (!isReady) return;
-
-    const inAuthGroup = segments[0] === "(auth)";
-    if (!token && !inAuthGroup) {
-      router.replace("/(auth)/login");
-    }
-    if (token && inAuthGroup) {
-      router.replace("/(app)/home");
-    }
-  }, [isReady, token, segments]);
-
-  return (
-    <Stack screenOptions={{ headerShown: false }} />
-  );
-}
+import { Stack } from "expo-router";
+import { AuthProvider } from "../src/auth/AuthContext";
+import { UserProvider } from "../src/context/UserContext";
+import { ThemeProvider } from "../src/context/ThemeContext";
 
 export default function RootLayout() {
+
   return (
     <AuthProvider>
-      <AuthGate />
+      <UserProvider>
+        <ThemeProvider>
+
+          <Stack screenOptions={{ headerShown: false }} />
+
+        </ThemeProvider>
+      </UserProvider>
     </AuthProvider>
   );
 }

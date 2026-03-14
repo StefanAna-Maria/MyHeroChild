@@ -30,6 +30,7 @@ public class SecurityConfig {
                     .requestMatchers("/parent/**").hasRole("PARENT")
                     .requestMatchers("/child/**").hasRole("CHILD")
                     .requestMatchers("/admin/**").hasRole("ADMIN")
+                    .requestMatchers("/users/me").authenticated()
                     .anyRequest().authenticated()
             )
             .addFilterBefore(jwtFilter, UsernamePasswordAuthenticationFilter.class);
