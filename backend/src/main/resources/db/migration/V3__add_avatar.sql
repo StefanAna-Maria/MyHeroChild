@@ -1,0 +1,2 @@
+ALTER TABLE users
+ADD COLUMN avatar VARCHAR(50) NOT NULL DEFAULT 'robot';

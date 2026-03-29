@@ -1,3 +1,10 @@
+/*
+import jwt_decode from "jwt-decode";
+
+export function jwtDecode(token: string) {
+  return jwt_decode(token);
+}
+*/
 export type UserRole = "PARENT" | "CHILD" | "ADMIN";
 
 export function decodeJwtPayload(token: string): any | null {

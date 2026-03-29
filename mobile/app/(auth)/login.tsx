@@ -15,6 +15,7 @@ import { api } from "../../src/services/api";
 import { useAuth } from "../../src/auth/AuthContext";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { getRoleFromToken } from "../../src/auth/jwt";
 
 export default function Login() {
   const { login } = useAuth();
@@ -61,6 +62,20 @@ export default function Login() {
       if (!token) throw new Error("Token missing");
 
       await login(token);
+
+      const role = getRoleFromToken(token);
+
+      if (role === "ADMIN") {
+        router.replace("/(admin)/home");
+      }
+
+      if (role === "PARENT") {
+        router.replace("/(parent)/home");
+      }
+
+      if (role === "CHILD") {
+        router.replace("/(child)/home");
+      }
     } catch (e: any) {
       setLoginError(true);
       showToast("Login failed. Check username or password.", "error");
