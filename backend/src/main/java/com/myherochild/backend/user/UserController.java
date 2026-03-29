@@ -4,18 +4,19 @@ import com.myherochild.backend.common.dto.ApiResponse;
 import com.myherochild.backend.user.dto.UserMeResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.Map;
 
 @RestController
 @RequiredArgsConstructor
+@RequestMapping("/users")
 public class UserController {
 
     private final UserRepository userRepository;
 
-    @GetMapping("/users/me")
+    // GET CURRENT USER (folosit de frontend pentru header)
+    @GetMapping("/me")
     public ApiResponse<UserMeResponse> getCurrentUser(Authentication authentication) {
 
         String username = authentication.getName();
@@ -35,18 +36,27 @@ public class UserController {
         return ApiResponse.success("User fetched successfully", response);
     }
 
-    @PutMapping("/users/avatar")
-    public ApiResponse<?> updateAvatar(Authentication authentication, @RequestParam String avatar) {
+    // UPDATE AVATAR (folosit de AvatarPicker)
+    @PatchMapping("/me/avatar")
+    public ApiResponse<String> updateAvatar(
+            Authentication authentication,
+            @RequestBody Map<String, String> body
+    ) {
 
         String username = authentication.getName();
 
         User user = userRepository.findByUsername(username)
-                .orElseThrow();
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        String avatar = body.get("avatar");
+
+        if (avatar == null || avatar.isBlank()) {
+            throw new RuntimeException("Avatar is required");
+        }
 
         user.setAvatar(avatar);
-
         userRepository.save(user);
 
-        return ApiResponse.success("Avatar updated", null);
+        return ApiResponse.success("Avatar updated successfully", null);
     }
 }

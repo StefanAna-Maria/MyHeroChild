@@ -6,11 +6,12 @@ import { useUser } from "../src/context/UserContext";
 import { Image, Pressable } from "react-native";
 import { avatars, AvatarType } from "../constants/avatars";
 import AvatarPicker from "./AvatarPicker";
+import { api } from "../src/services/api";
 
 export default function AppHeader() {
 
   const theme = useTheme();
-  const { user } = useUser();
+  const { user, refreshUser } = useUser();
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
@@ -92,10 +93,17 @@ export default function AppHeader() {
         <AvatarPicker
             visible={avatarPickerVisible}
             onClose={() => setAvatarPickerVisible(false)}
-            onSelect={(avatar) => {
-                console.log("Selected avatar:", avatar);
-                setAvatarPickerVisible(false);
+            onSelect={ async (avatar) => {
+                try {
+                  await api.patch("/users/me/avatar", { avatar });
+                  await refreshUser();
+                } catch (e) {
+                  console.log("Avatar update failed", e);
+                } finally {
+                  setAvatarPickerVisible(false);
+                }
             }}
+            
         />
 
     </View>
