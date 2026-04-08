@@ -1,9 +1,13 @@
 import { View, Text } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function AdminPanel() {
   return (
-    <View>
-      <Text>Admin Panel</Text>
-    </View>
+    <SafeAreaView style={{ flex: 1, paddingHorizontal: 16 }}>
+      <View>
+        <Text>Admin Panel</Text>
+        <Text>TEST</Text>
+      </View>
+    </SafeAreaView>
   );
 }
