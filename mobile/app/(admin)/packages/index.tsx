@@ -1,9 +1,12 @@
 import { useEffect, useState } from "react";
 import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
 import { useRouter } from "expo-router";
-import { api } from "../../src/services/api";
-import { useTheme } from "../../src/context/ThemeContext";
+import { api } from "@/src/services/api";
+import { useTheme } from "@/src/context/ThemeContext";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
+import { useCallback } from "react";
+import AppHeader from "@/components/AppHeader";
 
 export default function Packages() {
   const [packages, setPackages] = useState([]);
@@ -15,21 +18,27 @@ export default function Packages() {
     setPackages(res.data.data);
   };
 
-  useEffect(() => {
-    fetchPackages();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      fetchPackages();
+    }, [])
+  );
 
   return (
-    <SafeAreaView style={{ flex: 1 }}>
-      <View style={[s.container, { backgroundColor: theme.colors.background }]}>
+    //<SafeAreaView style={{ flex: 1 }}>
+
+      //<SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+
+        <AppHeader />
 
         <FlatList
           data={packages}
           keyExtractor={(item: any) => item.id.toString()}
-          contentContainerStyle={{ gap: 14, paddingBottom: 20 }}
+          contentContainerStyle={{ gap: 14 }}
           renderItem={({ item }: any) => (
             <Pressable
-              onPress={() => router.push(`/(admin)/packages/(screens)/package-detail?id=${item.id}`)}
+              onPress={() => router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}`)}
               style={[s.card, { backgroundColor: theme.colors.surface }]}
             >
               <Text style={[s.title, { color: theme.colors.text }]}>
@@ -49,13 +58,13 @@ export default function Packages() {
 
         <Pressable
           style={[s.addBtn, { backgroundColor: theme.colors.primary }]}
-          onPress={() => router.push("/(admin)/packages/(screens)/package-create")}
+          onPress={() => router.push("/(admin)/packages/_screens/package-create")}
         >
           <Text style={s.addText}>+ Add New Package</Text>
         </Pressable>
 
       </View>
-    </SafeAreaView>
+    //</SafeAreaView>
   );
 }
 
