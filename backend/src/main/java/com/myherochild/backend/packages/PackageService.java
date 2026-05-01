@@ -4,8 +4,11 @@ import com.myherochild.backend.packages.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -66,6 +69,94 @@ public class PackageService {
                 .orElseThrow(() -> new RuntimeException("Package not found"));
 
         return mapToResponse(pkg);
+    }
+
+    public PackageResponse updatePackage(Long id, CreatePackageRequest request) {
+        Package pkg = packageRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Package not found"));
+
+        pkg.setTitle(request.getTitle());
+        pkg.setAgeGroup(request.getAgeGroup());
+        pkg.setDescription(request.getDescription());
+
+        syncTasks(pkg, request.getTasks());
+        syncRewards(pkg, request.getRewards());
+
+        Package updatedPackage = packageRepository.save(pkg);
+
+        return mapToResponse(updatedPackage);
+    }
+
+    public void deletePackage(Long id) {
+        Package pkg = packageRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Package not found"));
+
+        packageRepository.delete(pkg);
+    }
+
+    private void syncTasks(Package pkg, List<CreateTaskRequest> taskRequests) {
+        List<Task> existingTasks = pkg.getTasks() == null ? new ArrayList<>() : pkg.getTasks();
+        Map<Long, Task> existingById = new HashMap<>();
+
+        for (Task task : existingTasks) {
+            if (task.getId() != null) {
+                existingById.put(task.getId(), task);
+            }
+        }
+
+        List<Task> updatedTasks = taskRequests == null
+                ? new ArrayList<>()
+                : taskRequests.stream()
+                        .map(taskRequest -> {
+                            Task task = taskRequest.getId() != null
+                                    ? existingById.getOrDefault(taskRequest.getId(), new Task())
+                                    : new Task();
+
+                            task.setTitle(taskRequest.getTitle());
+                            task.setXp(taskRequest.getXp());
+                            task.setRewardPoints(taskRequest.getRewardPoints());
+                            task.setType(taskRequest.getType());
+                            task.setPkg(pkg);
+
+                            return task;
+                        })
+                        .toList();
+
+        existingTasks.clear();
+        existingTasks.addAll(updatedTasks);
+        pkg.setTasks(existingTasks);
+    }
+
+    private void syncRewards(Package pkg, List<CreateRewardRequest> rewardRequests) {
+        List<Reward> existingRewards = pkg.getRewards() == null ? new ArrayList<>() : pkg.getRewards();
+        Map<Long, Reward> existingById = new HashMap<>();
+
+        for (Reward reward : existingRewards) {
+            if (reward.getId() != null) {
+                existingById.put(reward.getId(), reward);
+            }
+        }
+
+        List<Reward> updatedRewards = rewardRequests == null
+                ? new ArrayList<>()
+                : rewardRequests.stream()
+                        .map(rewardRequest -> {
+                            Reward reward = rewardRequest.getId() != null
+                                    ? existingById.getOrDefault(rewardRequest.getId(), new Reward())
+                                    : new Reward();
+
+                            reward.setTitle(rewardRequest.getTitle());
+                            reward.setPrice(rewardRequest.getPrice());
+                            reward.setType(rewardRequest.getType());
+                            reward.setPkg(pkg);
+
+                            return reward;
+                        })
+                        .toList();
+
+        existingRewards.clear();
+        existingRewards.addAll(updatedRewards);
+        pkg.setRewards(existingRewards);
     }
 
     private PackageResponse mapToResponse(Package pkg) {

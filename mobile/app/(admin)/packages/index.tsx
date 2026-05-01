@@ -1,11 +1,8 @@
-import { useEffect, useState } from "react";
-import { View, Text, FlatList, Pressable, StyleSheet } from "react-native";
-import { useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Alert, View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 import { api } from "@/src/services/api";
 import { useTheme } from "@/src/context/ThemeContext";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
-import { useCallback } from "react";
 import AppHeader from "@/components/AppHeader";
 
 export default function Packages() {
@@ -16,6 +13,28 @@ export default function Packages() {
   const fetchPackages = async () => {
     const res = await api.get("/packages");
     setPackages(res.data.data);
+  };
+
+  const handleDeletePackage = (id: number) => {
+    Alert.alert(
+      "Delete package",
+      "This package and all its tasks and rewards will be removed.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await api.delete(`/packages/${id}`);
+              fetchPackages();
+            } catch {
+              Alert.alert("Delete failed", "The package could not be deleted.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   useFocusEffect(
@@ -52,6 +71,22 @@ export default function Packages() {
               <Text style={{ color: theme.colors.textMuted }}>
                 {item.description}
               </Text>
+
+              <View style={s.actions}>
+                <Pressable
+                  style={[s.editBtn, { backgroundColor: theme.colors.primary }]}
+                  onPress={() => router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}&edit=1`)}
+                >
+                  <Text style={s.actionText}>Edit</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[s.deleteBtn, { backgroundColor: theme.colors.error }]}
+                  onPress={() => handleDeletePackage(item.id)}
+                >
+                  <Text style={s.actionText}>Delete</Text>
+                </Pressable>
+              </View>
             </Pressable>
           )}
         />
@@ -80,6 +115,27 @@ const s = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700"
+  },
+  actions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 14,
+  },
+  editBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  deleteBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
+  },
+  actionText: {
+    color: "white",
+    fontWeight: "700",
   },
   addBtn: {
     marginTop: 16,

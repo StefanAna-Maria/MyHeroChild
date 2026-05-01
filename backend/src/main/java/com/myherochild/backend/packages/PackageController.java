@@ -32,4 +32,19 @@ public class PackageController {
         PackageResponse response = packageService.getPackageById(id);
         return ApiResponse.success("Package fetched successfully", response);
     }
+
+    @PutMapping("/{id}")
+    public ApiResponse<PackageResponse> updatePackage(
+            @PathVariable Long id,
+            @RequestBody CreatePackageRequest request
+    ) {
+        PackageResponse response = packageService.updatePackage(id, request);
+        return ApiResponse.success("Package updated successfully", response);
+    }
+
+    @DeleteMapping("/{id}")
+    public ApiResponse<Void> deletePackage(@PathVariable Long id) {
+        packageService.deletePackage(id);
+        return ApiResponse.success("Package deleted successfully", null);
+    }
 }

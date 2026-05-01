@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class CreateTaskRequest {
+    private Long id;
     private String title;
     private int xp;
     private int rewardPoints;

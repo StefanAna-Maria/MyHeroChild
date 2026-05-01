@@ -4,6 +4,7 @@ import lombok.Data;
 
 @Data
 public class CreateRewardRequest {
+    private Long id;
     private String title;
     private int price;
     private String type;
