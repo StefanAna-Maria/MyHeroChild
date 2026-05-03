@@ -27,6 +27,7 @@ public class SecurityConfig {
             )
             .authorizeHttpRequests(auth -> auth
                     .requestMatchers("/auth/**").permitAll()
+                    .requestMatchers("/packages/**").permitAll()
                     .requestMatchers("/parent/**").hasRole("PARENT")
                     .requestMatchers("/child/**").hasRole("CHILD")
                     .requestMatchers("/admin/**").hasRole("ADMIN")
