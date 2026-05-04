@@ -159,7 +159,7 @@ public class PackageService {
         pkg.setRewards(existingRewards);
     }
 
-    private PackageResponse mapToResponse(Package pkg) {
+    public PackageResponse mapToResponse(Package pkg) {
         return PackageResponse.builder()
                 .id(pkg.getId())
                 .title(pkg.getTitle())
