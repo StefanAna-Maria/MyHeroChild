@@ -1,5 +1,5 @@
 import { useCallback, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../../../src/services/api";
@@ -10,7 +10,7 @@ import {
 } from "../../../../constants/parentCatalogue";
 import { rewardImages, RewardType } from "../../../../constants/rewardImages";
 
-export default function ParentPackageDetailScreen() {
+export default function DistributionPackageDetailScreen() {
   const { packageId, category } = useLocalSearchParams<{
     packageId: string;
     category?: string;
@@ -18,44 +18,23 @@ export default function ParentPackageDetailScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [pkg, setPkg] = useState<PackageItem | null>(null);
-  const [catalogueIds, setCatalogueIds] = useState<number[]>([]);
 
   const selectedCategory = getCategoryByKey(category);
 
-  const fetchData = useCallback(async () => {
-    const [packageRes, catalogueRes] = await Promise.all([
-      api.get(`/packages/${packageId}`),
-      api.get("/parent/catalog/packages"),
-    ]);
-
-    setPkg(packageRes.data.data);
-    setCatalogueIds((catalogueRes.data.data as PackageItem[]).map((item) => item.id));
+  const fetchPackage = useCallback(async () => {
+    const res = await api.get(`/packages/${packageId}`);
+    setPkg(res.data.data);
   }, [packageId]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchData();
-    }, [fetchData])
+      fetchPackage();
+    }, [fetchPackage])
   );
-
-  const handleAddToCatalogue = async () => {
-    if (!pkg) return;
-
-    try {
-      await api.post(`/parent/catalog/packages/${pkg.id}`);
-      setCatalogueIds((current) =>
-        current.includes(pkg.id) ? current : [...current, pkg.id]
-      );
-    } catch {
-      Alert.alert("Could not add package", "Please try again.");
-    }
-  };
 
   if (!pkg) {
     return null;
   }
-
-  const isInCatalogue = catalogueIds.includes(pkg.id);
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
@@ -97,23 +76,6 @@ export default function ParentPackageDetailScreen() {
           <Text style={[s.heroDescription, { color: theme.colors.textMuted }]}>
             {pkg.description || "No description provided."}
           </Text>
-
-          <Pressable
-            style={[
-              s.catalogueButton,
-              {
-                backgroundColor: isInCatalogue
-                  ? theme.colors.accent
-                  : theme.colors.tabIconActive,
-              },
-            ]}
-            onPress={handleAddToCatalogue}
-            disabled={isInCatalogue}
-          >
-            <Text style={s.catalogueButtonText}>
-              {isInCatalogue ? "Already in Catalogue" : "Add to Catalogue"}
-            </Text>
-          </Pressable>
         </View>
 
         <View
@@ -238,16 +200,6 @@ const s = StyleSheet.create({
   },
   heroDescription: {
     lineHeight: 21,
-  },
-  catalogueButton: {
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 6,
-  },
-  catalogueButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
   },
   sectionCard: {
     borderRadius: 18,

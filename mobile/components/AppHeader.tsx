@@ -1,9 +1,8 @@
-import { View, Text, StyleSheet, Animated } from "react-native";
+import { View, Text, StyleSheet, Animated, Image, Pressable } from "react-native";
 import { useEffect, useRef, useState } from "react";
 
 import { useTheme } from "../src/context/ThemeContext";
 import { useUser } from "../src/context/UserContext";
-import { Image, Pressable } from "react-native";
 import { avatars, AvatarType } from "../constants/avatars";
 import AvatarPicker from "./AvatarPicker";
 import { api } from "../src/services/api";
@@ -33,7 +32,7 @@ export default function AppHeader() {
       useNativeDriver: false
     }).start();
 
-  }, [xp]);
+  }, [progressAnim, xp]);
 
   if (!user) return null;
 
@@ -147,7 +146,7 @@ const s = StyleSheet.create({
   progressBarContainer: {
     height: 12,
     borderRadius: 10,
-    backgroundColor: "#e5e7eb",
+    backgroundColor: "#E6F2EA",
     overflow: "hidden"
   },
 

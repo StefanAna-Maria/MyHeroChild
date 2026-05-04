@@ -57,8 +57,19 @@ export default function ExploreCategoryScreen() {
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <View style={[s.topBar, { backgroundColor: theme.colors.surface }]}>
-        <Pressable onPress={() => router.back()} style={s.backButton}>
+      <View
+        style={[
+          s.topBar,
+          {
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.border,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+        >
           <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
         </Pressable>
 
@@ -75,7 +86,15 @@ export default function ExploreCategoryScreen() {
         </Text>
 
         {filteredPackages.length === 0 ? (
-          <View style={[s.emptyCard, { backgroundColor: theme.colors.surface }]}>
+          <View
+            style={[
+              s.emptyCard,
+              {
+                backgroundColor: theme.colors.primary,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
             <Text style={{ color: theme.colors.textMuted }}>
               No packages available in this category right now.
             </Text>
@@ -85,7 +104,16 @@ export default function ExploreCategoryScreen() {
             const isInCatalogue = catalogueIds.includes(pkg.id);
 
             return (
-              <View key={pkg.id} style={[s.card, { backgroundColor: theme.colors.surface }]}>
+              <View
+                key={pkg.id}
+                style={[
+                  s.card,
+                  {
+                    backgroundColor: theme.colors.primary,
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+              >
                 <Pressable
                   onPress={() =>
                     router.push({
@@ -114,8 +142,8 @@ export default function ExploreCategoryScreen() {
                     s.catalogueButton,
                     {
                       backgroundColor: isInCatalogue
-                        ? theme.colors.surfaceAlt
-                        : theme.colors.primary,
+                        ? theme.colors.accent
+                        : theme.colors.tabIconActive,
                     },
                   ]}
                   onPress={() => handleAddToCatalogue(pkg.id)}
@@ -145,6 +173,7 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
+    borderBottomWidth: 1,
   },
   backButton: {
     width: 40,
@@ -175,11 +204,18 @@ const s = StyleSheet.create({
   emptyCard: {
     padding: 16,
     borderRadius: 16,
+    borderWidth: 1,
   },
   card: {
     borderRadius: 18,
     padding: 16,
     gap: 14,
+    borderWidth: 1,
+    shadowColor: "#8F7AD8",
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    elevation: 2,
   },
   cardTitle: {
     fontSize: 18,

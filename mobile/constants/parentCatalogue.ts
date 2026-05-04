@@ -36,31 +36,31 @@ export const AGE_CATEGORIES: AgeCategory[] = [
     key: "3-6",
     title: "Ages 3-6",
     subtitle: "Playful routines and first responsibilities",
-    image: require("../assets/avatars/panda.png"),
+    image: require("../assets/age_group_imgs/age3_6.png"),
   },
   {
     key: "7-9",
     title: "Ages 7-9",
     subtitle: "Confidence-building daily habits",
-    image: require("../assets/avatars/cat.png"),
+    image: require("../assets/age_group_imgs/age7_9.png"),
   },
   {
     key: "10-12",
     title: "Ages 10-12",
     subtitle: "Growing independence with structure",
-    image: require("../assets/avatars/fox.png"),
+    image: require("../assets/age_group_imgs/age10_12.png"),
   },
   {
     key: "13-15",
     title: "Ages 13-15",
     subtitle: "Responsibility with stronger ownership",
-    image: require("../assets/avatars/dragon.png"),
+    image: require("../assets/age_group_imgs/age13_15.png"),
   },
   {
     key: "16-18",
     title: "Ages 16-18",
     subtitle: "Preparation for adult routines",
-    image: require("../assets/avatars/unicorn.png"),
+    image: require("../assets/age_group_imgs/age16_18.png"),
   },
 ];
 

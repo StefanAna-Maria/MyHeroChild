@@ -1,9 +1,28 @@
 import { Tabs } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useTheme } from "../../src/context/ThemeContext";
 
 export default function ParentTabs() {
+  const theme = useTheme();
+
   return (
-    <Tabs screenOptions={{ headerShown: false }}>
+    <Tabs
+      screenOptions={{
+        headerShown: false,
+        tabBarActiveTintColor: theme.colors.tabIconActive,
+        tabBarInactiveTintColor: theme.colors.tabIconDefault,
+        tabBarStyle: {
+          backgroundColor: theme.colors.tabBar,
+          borderTopColor: theme.colors.border,
+          height: 66,
+          paddingTop: 6,
+          paddingBottom: 8,
+        },
+        tabBarLabelStyle: {
+          fontWeight: "600",
+        },
+      }}
+    >
 
       <Tabs.Screen
         name="home"

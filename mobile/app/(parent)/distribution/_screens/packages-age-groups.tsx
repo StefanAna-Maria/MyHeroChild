@@ -1,29 +1,29 @@
 import { useCallback, useMemo, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import AppHeader from "../../../components/AppHeader";
-import { api } from "../../../src/services/api";
-import { useTheme } from "../../../src/context/ThemeContext";
+import { Ionicons } from "@expo/vector-icons";
+import { api } from "../../../../src/services/api";
+import { useTheme } from "../../../../src/context/ThemeContext";
 import {
   AGE_CATEGORIES,
   PackageItem,
   resolveAgeGroup,
-} from "../../../constants/parentCatalogue";
+} from "../../../../constants/parentCatalogue";
 
-export default function ExploreIndex() {
+export default function DistributionPackagesAgeGroupsScreen() {
   const router = useRouter();
   const theme = useTheme();
-  const [packages, setPackages] = useState<PackageItem[]>([]);
+  const [cataloguePackages, setCataloguePackages] = useState<PackageItem[]>([]);
 
-  const fetchPackages = useCallback(async () => {
-    const res = await api.get("/packages");
-    setPackages(res.data.data);
+  const fetchCatalogue = useCallback(async () => {
+    const res = await api.get("/parent/catalog/packages");
+    setCataloguePackages(res.data.data);
   }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchPackages();
-    }, [fetchPackages])
+      fetchCatalogue();
+    }, [fetchCatalogue])
   );
 
   const categoryCounts = useMemo(() => {
@@ -33,7 +33,7 @@ export default function ExploreIndex() {
       counts.set(category.key, 0);
     }
 
-    for (const pkg of packages) {
+    for (const pkg of cataloguePackages) {
       const key = resolveAgeGroup(pkg.ageGroup);
       if (counts.has(key)) {
         counts.set(key, (counts.get(key) ?? 0) + 1);
@@ -41,16 +41,32 @@ export default function ExploreIndex() {
     }
 
     return counts;
-  }, [packages]);
+  }, [cataloguePackages]);
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <AppHeader />
+      <View
+        style={[
+          s.topBar,
+          {
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.border,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+        >
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+        </Pressable>
+
+        <Text style={[s.topBarTitle, { color: theme.colors.text }]}>Packages</Text>
+      </View>
 
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={[s.pageTitle, { color: theme.colors.text }]}>Explore by Age</Text>
-        <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
-          Pick an age category to browse the packages created by admin.
+        <Text style={[s.subtitle, { color: theme.colors.textMuted }]}>
+          Open an age category to browse the saved packages in your catalogue.
         </Text>
 
         {AGE_CATEGORIES.map((category) => (
@@ -65,7 +81,7 @@ export default function ExploreIndex() {
             ]}
             onPress={() =>
               router.push({
-                pathname: "/(parent)/explore/_screens/category",
+                pathname: "/(parent)/distribution/_screens/package-category",
                 params: { category: category.key },
               })
             }
@@ -95,18 +111,34 @@ const s = StyleSheet.create({
   screen: {
     flex: 1,
   },
+  topBar: {
+    paddingTop: 56,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderBottomWidth: 1,
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBarTitle: {
+    flex: 1,
+    fontSize: 24,
+    fontWeight: "800",
+  },
   content: {
     padding: 16,
     paddingBottom: 32,
     gap: 14,
   },
-  pageTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-  },
-  pageSubtitle: {
-    marginTop: 8,
-    marginBottom: 10,
+  subtitle: {
+    marginBottom: 4,
     lineHeight: 20,
   },
   card: {
