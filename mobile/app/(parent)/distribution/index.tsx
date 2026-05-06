@@ -30,10 +30,19 @@ export default function DistributionIndex() {
   const router = useRouter();
   const theme = useTheme();
   const [packageCount, setPackageCount] = useState(0);
+  const [taskCount, setTaskCount] = useState(0);
+  const [rewardCount, setRewardCount] = useState(0);
 
   const fetchCatalogueCount = useCallback(async () => {
-    const res = await api.get("/parent/catalog/packages");
-    setPackageCount(res.data.data.length);
+    const [packagesRes, tasksRes, rewardsRes] = await Promise.all([
+      api.get("/parent/catalog/packages"),
+      api.get("/parent/catalog/tasks"),
+      api.get("/parent/catalog/rewards"),
+    ]);
+
+    setPackageCount(packagesRes.data.data.length);
+    setTaskCount(tasksRes.data.data.length);
+    setRewardCount(rewardsRes.data.data.length);
   }, []);
 
   useFocusEffect(
@@ -70,7 +79,9 @@ export default function DistributionIndex() {
           const count =
             card.key === "packages"
               ? packageCount
-              : 0;
+              : card.key === "my-tasks"
+                ? taskCount
+                : rewardCount;
 
           return (
             <Pressable

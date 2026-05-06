@@ -8,7 +8,7 @@ import {
   getCategoryByKey,
   PackageItem,
 } from "../../../../constants/parentCatalogue";
-import { rewardImages, RewardType } from "../../../../constants/rewardImages";
+import { getRewardImage } from "../../../../constants/rewardImages";
 
 export default function ParentPackageDetailScreen() {
   const { packageId, category } = useLocalSearchParams<{
@@ -136,13 +136,36 @@ export default function ParentPackageDetailScreen() {
                 style={[s.itemCard, { backgroundColor: theme.colors.surfaceAlt }]}
               >
                 <Text style={[s.itemTitle, { color: theme.colors.text }]}>{task.title}</Text>
-                <Text style={{ color: theme.colors.textMuted }}>XP: {task.xp}</Text>
-                <Text style={{ color: theme.colors.textMuted }}>
-                  Reward Points: {task.rewardPoints}
-                </Text>
-                <Text style={{ color: theme.colors.textMuted }}>
-                  Type: {task.type || "-"}
-                </Text>
+
+                <View style={s.infoRow}>
+                  <View style={[s.typeBadge, { backgroundColor: theme.colors.primary }]}>
+                    <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                      {task.type || "-"}
+                    </Text>
+                  </View>
+
+                  <View style={s.metricGroup}>
+                    <View style={s.metricItem}>
+                      <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                        {task.xp}
+                      </Text>
+                      <Image
+                        source={require("../../../../assets/icons/xp.png")}
+                        style={s.metricIcon}
+                      />
+                    </View>
+
+                    <View style={s.metricItem}>
+                      <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                        {task.rewardPoints}
+                      </Text>
+                      <Image
+                        source={require("../../../../assets/icons/reward_points.png")}
+                        style={s.metricIcon}
+                      />
+                    </View>
+                  </View>
+                </View>
               </View>
             ))
           )}
@@ -163,8 +186,7 @@ export default function ParentPackageDetailScreen() {
             <Text style={{ color: theme.colors.textMuted }}>No rewards in this package.</Text>
           ) : (
             pkg.rewards.map((reward) => {
-              const rewardImage =
-                rewardImages[reward.type as RewardType] ?? rewardImages.default;
+              const rewardImage = getRewardImage(reward.type);
 
               return (
                 <View
@@ -177,12 +199,24 @@ export default function ParentPackageDetailScreen() {
                     <Text style={[s.itemTitle, { color: theme.colors.text }]}>
                       {reward.title}
                     </Text>
-                    <Text style={{ color: theme.colors.textMuted }}>
-                      Price: {reward.price} RP
-                    </Text>
-                    <Text style={{ color: theme.colors.textMuted }}>
-                      Type: {reward.type || "-"}
-                    </Text>
+
+                    <View style={s.infoRow}>
+                      <View style={[s.typeBadge, { backgroundColor: theme.colors.primary }]}>
+                        <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                          {reward.type || "-"}
+                        </Text>
+                      </View>
+
+                      <View style={s.metricItem}>
+                        <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                          {reward.price}
+                        </Text>
+                        <Image
+                          source={require("../../../../assets/icons/reward_points.png")}
+                          style={s.metricIcon}
+                        />
+                      </View>
+                    </View>
                   </View>
                 </View>
               );
@@ -267,6 +301,42 @@ const s = StyleSheet.create({
   itemTitle: {
     fontSize: 17,
     fontWeight: "700",
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 2,
+  },
+  typeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  typeBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  metricGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  metricItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  metricValue: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  metricIcon: {
+    width: 18,
+    height: 18,
+    resizeMode: "contain",
   },
   rewardCard: {
     borderRadius: 14,

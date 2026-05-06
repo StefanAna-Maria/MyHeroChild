@@ -10,8 +10,9 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../../../src/services/api";
-import { rewardImages, RewardType } from "../../../../constants/rewardImages";
+import { getRewardImage } from "../../../../constants/rewardImages";
 import { useTheme } from "../../../../src/context/ThemeContext";
 
 type TaskItem = {
@@ -62,7 +63,6 @@ export default function PackageDetailScreen() {
   const [editingTaskIndex, setEditingTaskIndex] = useState<number | null>(null);
   const [editingRewardIndex, setEditingRewardIndex] = useState<number | null>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchPackage = useCallback(async () => {
     const res = await api.get(`/packages/${id}`);
@@ -84,7 +84,10 @@ export default function PackageDetailScreen() {
     }
   }, [edit, pkg]);
 
-  const updatePackageField = (field: "title" | "ageGroup" | "description", value: string) => {
+  const updatePackageField = (
+    field: "title" | "ageGroup" | "description",
+    value: string
+  ) => {
     setDraftPkg((current) => (current ? { ...current, [field]: value } : current));
   };
 
@@ -93,9 +96,8 @@ export default function PackageDetailScreen() {
       if (!current) return current;
 
       const tasks = [...current.tasks];
-      const currentTask = tasks[index];
       tasks[index] = {
-        ...currentTask,
+        ...tasks[index],
         [field]:
           field === "xp" || field === "rewardPoints"
             ? Number(value) || 0
@@ -111,9 +113,8 @@ export default function PackageDetailScreen() {
       if (!current) return current;
 
       const rewards = [...current.rewards];
-      const currentReward = rewards[index];
       rewards[index] = {
-        ...currentReward,
+        ...rewards[index],
         [field]: field === "price" ? Number(value) || 0 : value,
       };
 
@@ -189,13 +190,10 @@ export default function PackageDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              setIsDeleting(true);
               await api.delete(`/packages/${id}`);
               router.replace("/(admin)/packages");
             } catch {
               Alert.alert("Delete failed", "The package could not be deleted.");
-            } finally {
-              setIsDeleting(false);
             }
           },
         },
@@ -206,9 +204,10 @@ export default function PackageDetailScreen() {
   const handleDeleteTask = (index: number) => {
     setDraftPkg((current) => {
       if (!current) return current;
-
-      const tasks = current.tasks.filter((_, taskIndex) => taskIndex !== index);
-      return { ...current, tasks };
+      return {
+        ...current,
+        tasks: current.tasks.filter((_, taskIndex) => taskIndex !== index),
+      };
     });
 
     setEditingTaskIndex((current) => {
@@ -222,9 +221,10 @@ export default function PackageDetailScreen() {
   const handleDeleteReward = (index: number) => {
     setDraftPkg((current) => {
       if (!current) return current;
-
-      const rewards = current.rewards.filter((_, rewardIndex) => rewardIndex !== index);
-      return { ...current, rewards };
+      return {
+        ...current,
+        rewards: current.rewards.filter((_, rewardIndex) => rewardIndex !== index),
+      };
     });
 
     setEditingRewardIndex((current) => {
@@ -256,249 +256,385 @@ export default function PackageDetailScreen() {
   }
 
   return (
-    <ScrollView style={[s.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[s.card, { backgroundColor: theme.colors.surface }]}>
-        {isEditingPackage ? (
-          <>
-            <TextInput
-              value={draftPkg.title}
-              onChangeText={(value) => updatePackageField("title", value)}
-              style={[s.titleInput, s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-              placeholder="Package title"
-              placeholderTextColor={theme.colors.textMuted}
-            />
+    <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          s.topBar,
+          {
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.border,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+        >
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+        </Pressable>
 
-            <TextInput
-              value={draftPkg.ageGroup}
-              onChangeText={(value) => updatePackageField("ageGroup", value)}
-              style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-              placeholder="Age group"
-              placeholderTextColor={theme.colors.textMuted}
-            />
-
-            <TextInput
-              value={draftPkg.description}
-              onChangeText={(value) => updatePackageField("description", value)}
-              style={[s.input, s.multilineInput, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-              placeholder="Description"
-              placeholderTextColor={theme.colors.textMuted}
-              multiline
-            />
-          </>
-        ) : (
-          <>
-            <Text style={[s.title, { color: theme.colors.text }]}>{draftPkg.title}</Text>
-            <Text style={[s.meta, { color: theme.colors.textMuted }]}>Age: {draftPkg.ageGroup}</Text>
-            <Text style={[s.description, { color: theme.colors.text }]}>{draftPkg.description}</Text>
-          </>
-        )}
-
-        <View style={s.actionRow}>
-          {isEditingPackage ? (
-            <>
-              <Pressable
-                style={[s.primaryButton, { backgroundColor: theme.colors.primary }]}
-                onPress={handleSave}
-                disabled={isSaving}
-              >
-                <Text style={s.buttonText}>{isSaving ? "Saving..." : "Save"}</Text>
-              </Pressable>
-
-              <Pressable
-                style={[s.secondaryButton, { borderColor: theme.colors.border }]}
-                onPress={handleCancelEdit}
-              >
-                <Text style={[s.secondaryButtonText, { color: theme.colors.text }]}>Cancel</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Pressable
-                style={[s.primaryButton, { backgroundColor: theme.colors.primary }]}
-                onPress={handleStartEdit}
-              >
-                <Text style={s.buttonText}>Edit Package</Text>
-              </Pressable>
-
-              <Pressable
-                style={[s.dangerButton, { backgroundColor: theme.colors.error }]}
-                onPress={handleDeletePackage}
-                disabled={isDeleting}
-              >
-                <Text style={s.buttonText}>{isDeleting ? "Deleting..." : "Delete Package"}</Text>
-              </Pressable>
-            </>
-          )}
+        <View style={s.topBarText}>
+          <Text style={[s.topBarTitle, { color: theme.colors.text }]}>Package Details</Text>
+          <Text style={{ color: theme.colors.textMuted }}>
+            {isEditingPackage ? "Edit package content" : "Review package content"}
+          </Text>
         </View>
       </View>
 
-      <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Tasks</Text>
-
-      {draftPkg.tasks.map((task, index) => {
-        const isEditingTask = isEditingPackage && editingTaskIndex === index;
-
-        return (
-          <View key={task.id ?? `task-${index}`} style={[s.card, { backgroundColor: theme.colors.surface }]}>
-            {isEditingTask ? (
-              <>
-                <TextInput
-                  value={task.title}
-                  onChangeText={(value) => updateTask(index, "title", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Task title"
-                  placeholderTextColor={theme.colors.textMuted}
+      <ScrollView contentContainerStyle={s.content}>
+        <View
+          style={[
+            s.heroCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          {!isEditingPackage && (
+            <View style={s.heroActions}>
+              <Pressable onPress={handleStartEdit} style={s.iconButton} hitSlop={8}>
+                <Image
+                  source={require("../../../../assets/button_icons/edit.png")}
+                  style={s.iconImage}
                 />
+              </Pressable>
 
-                <TextInput
-                  value={String(task.xp)}
-                  onChangeText={(value) => updateTask(index, "xp", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="XP"
-                  placeholderTextColor={theme.colors.textMuted}
-                  keyboardType="numeric"
+              <Pressable onPress={handleDeletePackage} style={s.iconButton} hitSlop={8}>
+                <Image
+                  source={require("../../../../assets/button_icons/delete.png")}
+                  style={s.iconImage}
                 />
+              </Pressable>
+            </View>
+          )}
 
-                <TextInput
-                  value={String(task.rewardPoints)}
-                  onChangeText={(value) => updateTask(index, "rewardPoints", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Reward Points"
-                  placeholderTextColor={theme.colors.textMuted}
-                  keyboardType="numeric"
-                />
+          {isEditingPackage ? (
+            <>
+              <TextInput
+                value={draftPkg.title}
+                onChangeText={(value) => updatePackageField("title", value)}
+                style={[
+                  s.titleInput,
+                  s.input,
+                  inputColors(theme.colors.surfaceAlt, theme.colors.text),
+                ]}
+                placeholder="Package title"
+                placeholderTextColor={theme.colors.textMuted}
+              />
 
-                <TextInput
-                  value={task.type}
-                  onChangeText={(value) => updateTask(index, "type", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Type"
-                  placeholderTextColor={theme.colors.textMuted}
-                />
-              </>
-            ) : (
-              <>
-                <Text style={[s.itemTitle, { color: theme.colors.text }]}>{task.title}</Text>
-                <Text style={{ color: theme.colors.textMuted }}>{task.xp} XP</Text>
-                <Text style={{ color: theme.colors.textMuted }}>{task.rewardPoints} RP</Text>
-                <Text style={{ color: theme.colors.textMuted }}>Type: {task.type || "-"}</Text>
-              </>
-            )}
+              <TextInput
+                value={draftPkg.ageGroup}
+                onChangeText={(value) => updatePackageField("ageGroup", value)}
+                style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
+                placeholder="Age group"
+                placeholderTextColor={theme.colors.textMuted}
+              />
+
+              <TextInput
+                value={draftPkg.description}
+                onChangeText={(value) => updatePackageField("description", value)}
+                style={[
+                  s.input,
+                  s.multilineInput,
+                  inputColors(theme.colors.surfaceAlt, theme.colors.text),
+                ]}
+                placeholder="Description"
+                placeholderTextColor={theme.colors.textMuted}
+                multiline
+              />
+            </>
+          ) : (
+            <>
+              <Text style={[s.heroTitle, { color: theme.colors.text }]}>{draftPkg.title}</Text>
+              <Text style={[s.heroMeta, { color: theme.colors.textMuted }]}>
+                Age Group {draftPkg.ageGroup}
+              </Text>
+              <Text style={[s.heroDescription, { color: theme.colors.textMuted }]}>
+                {draftPkg.description || "No description provided."}
+              </Text>
+            </>
+          )}
+
+          {isEditingPackage && (
+            <View style={s.formActions}>
+              <Pressable
+                style={[s.primaryAction, { backgroundColor: theme.colors.primary }]}
+                onPress={handleSave}
+                disabled={isSaving}
+              >
+                <Text style={s.primaryActionText}>{isSaving ? "Saving..." : "Save"}</Text>
+              </Pressable>
+
+              <Pressable
+                style={[s.secondaryAction, { backgroundColor: theme.colors.surfaceAlt }]}
+                onPress={handleCancelEdit}
+              >
+                <Text style={[s.secondaryActionText, { color: theme.colors.text }]}>Cancel</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+
+        <View
+          style={[
+            s.sectionCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <View style={s.sectionHeader}>
+            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Tasks</Text>
 
             {isEditingPackage && (
-              <View style={s.itemActionRow}>
-                <Pressable
-                  style={[s.secondaryButton, { borderColor: theme.colors.border }]}
-                  onPress={() =>
-                    setEditingTaskIndex(isEditingTask ? null : index)
-                  }
-                >
-                  <Text style={[s.secondaryButtonText, { color: theme.colors.text }]}>
-                    {isEditingTask ? "Done" : "Edit"}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  style={[s.dangerOutlineButton, { borderColor: theme.colors.error }]}
-                  onPress={() => handleDeleteTask(index)}
-                >
-                  <Text style={[s.dangerOutlineText, { color: theme.colors.error }]}>Delete</Text>
-                </Pressable>
-              </View>
+              <Pressable
+                style={[s.addChip, { backgroundColor: theme.colors.primary }]}
+                onPress={addTask}
+              >
+                <Text style={s.addChipText}>+ Add Task</Text>
+              </Pressable>
             )}
           </View>
-        );
-      })}
 
-      {isEditingPackage && (
-        <Pressable
-          style={[s.addButton, { borderColor: theme.colors.primary }]}
-          onPress={addTask}
-        >
-          <Text style={[s.addButtonText, { color: theme.colors.primary }]}>+ Add Task</Text>
-        </Pressable>
-      )}
+          {draftPkg.tasks.map((task, index) => {
+            const isEditingTask = isEditingPackage && editingTaskIndex === index;
 
-      <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Rewards</Text>
+            return (
+              <View
+                key={task.id ?? `task-${index}`}
+                style={[s.itemCard, { backgroundColor: theme.colors.surfaceAlt }]}
+              >
+                {isEditingTask ? (
+                  <>
+                    <TextInput
+                      value={task.title}
+                      onChangeText={(value) => updateTask(index, "title", value)}
+                      style={[s.input, inputColors(theme.colors.surface, theme.colors.text)]}
+                      placeholder="Task title"
+                      placeholderTextColor={theme.colors.textMuted}
+                    />
 
-      {draftPkg.rewards.map((reward, index) => {
-        const isEditingReward = isEditingPackage && editingRewardIndex === index;
-        const imageSource =
-          rewardImages[(reward.type as RewardType) || "default"] ?? rewardImages.default;
+                    <TextInput
+                      value={String(task.xp)}
+                      onChangeText={(value) => updateTask(index, "xp", value)}
+                      style={[s.input, inputColors(theme.colors.surface, theme.colors.text)]}
+                      placeholder="XP"
+                      placeholderTextColor={theme.colors.textMuted}
+                      keyboardType="numeric"
+                    />
 
-        return (
-          <View key={reward.id ?? `reward-${index}`} style={[s.card, { backgroundColor: theme.colors.surface }]}>
-            {isEditingReward ? (
-              <>
-                <TextInput
-                  value={reward.title}
-                  onChangeText={(value) => updateReward(index, "title", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Reward title"
-                  placeholderTextColor={theme.colors.textMuted}
-                />
+                    <TextInput
+                      value={String(task.rewardPoints)}
+                      onChangeText={(value) => updateTask(index, "rewardPoints", value)}
+                      style={[s.input, inputColors(theme.colors.surface, theme.colors.text)]}
+                      placeholder="Reward Points"
+                      placeholderTextColor={theme.colors.textMuted}
+                      keyboardType="numeric"
+                    />
 
-                <TextInput
-                  value={String(reward.price)}
-                  onChangeText={(value) => updateReward(index, "price", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Price"
-                  placeholderTextColor={theme.colors.textMuted}
-                  keyboardType="numeric"
-                />
+                    <TextInput
+                      value={task.type}
+                      onChangeText={(value) => updateTask(index, "type", value)}
+                      style={[s.input, inputColors(theme.colors.surface, theme.colors.text)]}
+                      placeholder="Type"
+                      placeholderTextColor={theme.colors.textMuted}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Text style={[s.itemTitle, { color: theme.colors.text }]}>{task.title}</Text>
 
-                <TextInput
-                  value={reward.type}
-                  onChangeText={(value) => updateReward(index, "type", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Type"
-                  placeholderTextColor={theme.colors.textMuted}
-                />
-              </>
-            ) : (
-              <View style={s.rewardRow}>
-                <Image source={imageSource} style={s.rewardImage} />
-                <View style={s.rewardTextWrap}>
-                  <Text style={[s.itemTitle, { color: theme.colors.text }]}>{reward.title}</Text>
-                  <Text style={{ color: theme.colors.textMuted }}>{reward.price} RP</Text>
-                  <Text style={{ color: theme.colors.textMuted }}>Type: {reward.type || "-"}</Text>
-                </View>
+                    <View style={s.infoRow}>
+                      <View
+                        style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}
+                      >
+                        <Text
+                          style={[s.typeBadgeText, { color: theme.colors.textMuted }]}
+                        >
+                          {task.type || "-"}
+                        </Text>
+                      </View>
+
+                      <View style={s.metricGroup}>
+                        <View style={s.metricItem}>
+                          <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                            {task.xp}
+                          </Text>
+                          <Image
+                            source={require("../../../../assets/icons/xp.png")}
+                            style={s.metricIcon}
+                          />
+                        </View>
+
+                        <View style={s.metricItem}>
+                          <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                            {task.rewardPoints}
+                          </Text>
+                          <Image
+                            source={require("../../../../assets/icons/reward_points.png")}
+                            style={s.metricIcon}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                {isEditingPackage && (
+                  <View style={s.itemActions}>
+                    <Pressable
+                      onPress={() => setEditingTaskIndex(isEditingTask ? null : index)}
+                      style={s.iconButton}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={require("../../../../assets/button_icons/edit.png")}
+                        style={s.iconImage}
+                      />
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleDeleteTask(index)}
+                      style={s.iconButton}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={require("../../../../assets/button_icons/delete.png")}
+                        style={s.iconImage}
+                      />
+                    </Pressable>
+                  </View>
+                )}
               </View>
-            )}
+            );
+          })}
+        </View>
+
+        <View
+          style={[
+            s.sectionCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <View style={s.sectionHeader}>
+            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Rewards</Text>
 
             {isEditingPackage && (
-              <View style={s.itemActionRow}>
-                <Pressable
-                  style={[s.secondaryButton, { borderColor: theme.colors.border }]}
-                  onPress={() =>
-                    setEditingRewardIndex(isEditingReward ? null : index)
-                  }
-                >
-                  <Text style={[s.secondaryButtonText, { color: theme.colors.text }]}>
-                    {isEditingReward ? "Done" : "Edit"}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  style={[s.dangerOutlineButton, { borderColor: theme.colors.error }]}
-                  onPress={() => handleDeleteReward(index)}
-                >
-                  <Text style={[s.dangerOutlineText, { color: theme.colors.error }]}>Delete</Text>
-                </Pressable>
-              </View>
+              <Pressable
+                style={[s.addChip, { backgroundColor: theme.colors.primary }]}
+                onPress={addReward}
+              >
+                <Text style={s.addChipText}>+ Add Reward</Text>
+              </Pressable>
             )}
           </View>
-        );
-      })}
 
-      {isEditingPackage && (
-        <Pressable
-          style={[s.addButton, { borderColor: theme.colors.primary }]}
-          onPress={addReward}
-        >
-          <Text style={[s.addButtonText, { color: theme.colors.primary }]}>+ Add Reward</Text>
-        </Pressable>
-      )}
-    </ScrollView>
+          {draftPkg.rewards.map((reward, index) => {
+            const isEditingReward = isEditingPackage && editingRewardIndex === index;
+            const imageSource = getRewardImage(reward.type);
+
+            return (
+              <View
+                key={reward.id ?? `reward-${index}`}
+                style={[s.rewardCard, { backgroundColor: theme.colors.surfaceAlt }]}
+              >
+                {isEditingReward ? (
+                  <View style={s.editFormWrap}>
+                    <TextInput
+                      value={reward.title}
+                      onChangeText={(value) => updateReward(index, "title", value)}
+                      style={[s.input, inputColors(theme.colors.surface, theme.colors.text)]}
+                      placeholder="Reward title"
+                      placeholderTextColor={theme.colors.textMuted}
+                    />
+
+                    <TextInput
+                      value={String(reward.price)}
+                      onChangeText={(value) => updateReward(index, "price", value)}
+                      style={[s.input, inputColors(theme.colors.surface, theme.colors.text)]}
+                      placeholder="Price"
+                      placeholderTextColor={theme.colors.textMuted}
+                      keyboardType="numeric"
+                    />
+
+                    <TextInput
+                      value={reward.type}
+                      onChangeText={(value) => updateReward(index, "type", value)}
+                      style={[s.input, inputColors(theme.colors.surface, theme.colors.text)]}
+                      placeholder="Type"
+                      placeholderTextColor={theme.colors.textMuted}
+                    />
+                  </View>
+                ) : (
+                  <>
+                    <Image source={imageSource} style={s.rewardImage} />
+
+                    <View style={s.rewardTextWrap}>
+                      <Text style={[s.itemTitle, { color: theme.colors.text }]}>
+                        {reward.title}
+                      </Text>
+
+                      <View style={s.infoRow}>
+                        <View
+                          style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}
+                        >
+                          <Text
+                            style={[s.typeBadgeText, { color: theme.colors.textMuted }]}
+                          >
+                            {reward.type || "-"}
+                          </Text>
+                        </View>
+
+                        <View style={s.metricItem}>
+                          <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                            {reward.price}
+                          </Text>
+                          <Image
+                            source={require("../../../../assets/icons/reward_points.png")}
+                            style={s.metricIcon}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                {isEditingPackage && (
+                  <View style={s.itemActions}>
+                    <Pressable
+                      onPress={() => setEditingRewardIndex(isEditingReward ? null : index)}
+                      style={s.iconButton}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={require("../../../../assets/button_icons/edit.png")}
+                        style={s.iconImage}
+                      />
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleDeleteReward(index)}
+                      style={s.iconButton}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={require("../../../../assets/button_icons/delete.png")}
+                        style={s.iconImage}
+                      />
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -508,116 +644,215 @@ const inputColors = (backgroundColor: string, color: string) => ({
 });
 
 const s = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 16,
   },
-  card: {
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 16,
+  topBar: {
+    paddingTop: 56,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderBottomWidth: 1,
   },
-  title: {
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBarText: {
+    flex: 1,
+  },
+  topBarTitle: {
     fontSize: 24,
     fontWeight: "800",
-    marginBottom: 8,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 32,
+    gap: 16,
+  },
+  heroCard: {
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    borderWidth: 1,
+    position: "relative",
+  },
+  heroActions: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    flexDirection: "row",
+    gap: 8,
+    zIndex: 2,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    paddingRight: 72,
+  },
+  heroMeta: {
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  heroDescription: {
+    lineHeight: 21,
   },
   titleInput: {
     fontSize: 22,
-    fontWeight: "700",
-  },
-  meta: {
-    marginBottom: 8,
-  },
-  description: {
-    lineHeight: 22,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
-  },
-  primaryButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  secondaryButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  dangerButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  secondaryButtonText: {
-    fontWeight: "700",
-  },
-  dangerOutlineButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  dangerOutlineText: {
-    fontWeight: "700",
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 12,
-  },
-  itemTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  itemActionRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 14,
-  },
-  rewardRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  rewardImage: {
-    width: 52,
-    height: 52,
-  },
-  rewardTextWrap: {
-    flex: 1,
-  },
-  addButton: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  addButtonText: {
     fontWeight: "700",
   },
   input: {
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginBottom: 12,
   },
   multilineInput: {
     minHeight: 110,
     textAlignVertical: "top",
+  },
+  formActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  primaryAction: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  primaryActionText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  secondaryAction: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  secondaryActionText: {
+    fontWeight: "700",
+  },
+  sectionCard: {
+    borderRadius: 18,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  addChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  addChipText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 12,
+    textTransform: "uppercase",
+  },
+  itemCard: {
+    borderRadius: 14,
+    padding: 14,
+    gap: 4,
+    position: "relative",
+  },
+  rewardCard: {
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    position: "relative",
+  },
+  editFormWrap: {
+    flex: 1,
+    gap: 12,
+  },
+  itemTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    paddingRight: 64,
+  },
+  rewardImage: {
+    width: 56,
+    height: 56,
+    resizeMode: "contain",
+  },
+  rewardTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 2,
+  },
+  typeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  typeBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  metricGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  metricItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  metricValue: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  metricIcon: {
+    width: 18,
+    height: 18,
+    resizeMode: "contain",
+  },
+  itemActions: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    gap: 8,
+    zIndex: 2,
+  },
+  iconButton: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconImage: {
+    width: 22,
+    height: 22,
+    resizeMode: "contain",
   },
 });
