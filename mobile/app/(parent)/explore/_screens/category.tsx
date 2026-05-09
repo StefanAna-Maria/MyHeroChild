@@ -128,31 +128,51 @@ export default function ExploreCategoryScreen() {
                   </Text>
                 </Pressable>
 
-                <View style={s.metaRow}>
-                  <Text style={[s.metaBadge, { color: theme.colors.textMuted, borderColor: theme.colors.border }]}>
-                    {pkg.tasks.length} tasks
-                  </Text>
-                  <Text style={[s.metaBadge, { color: theme.colors.textMuted, borderColor: theme.colors.border }]}>
-                    {pkg.rewards.length} rewards
-                  </Text>
-                </View>
+                <View style={s.cardFooter}>
+                  <View style={s.metaRow}>
+                    <Text
+                      style={[
+                        s.metaBadge,
+                        {
+                          color: theme.colors.text,
+                          backgroundColor: theme.colors.surfaceAlt,
+                          borderColor: theme.colors.surfaceAlt,
+                        },
+                      ]}
+                    >
+                      {pkg.tasks.length} tasks
+                    </Text>
+                    <Text
+                      style={[
+                        s.metaBadge,
+                        {
+                          color: theme.colors.text,
+                          backgroundColor: theme.colors.tabIconActive,
+                          borderColor: theme.colors.tabIconActive,
+                        },
+                      ]}
+                    >
+                      {pkg.rewards.length} rewards
+                    </Text>
+                  </View>
 
-                <Pressable
-                  style={[
-                    s.catalogueButton,
-                    {
-                      backgroundColor: isInCatalogue
-                        ? theme.colors.accent
-                        : theme.colors.tabIconActive,
-                    },
-                  ]}
-                  onPress={() => handleAddToCatalogue(pkg.id)}
-                  disabled={isInCatalogue}
-                >
-                  <Text style={s.catalogueButtonText}>
-                    {isInCatalogue ? "Already in Catalogue" : "Add to Catalogue"}
-                  </Text>
-                </Pressable>
+                  <Pressable
+                    style={[
+                      s.catalogueButton,
+                      {
+                        backgroundColor: isInCatalogue
+                          ? theme.colors.accent
+                          : theme.colors.tabIconActive,
+                      },
+                    ]}
+                    onPress={() => handleAddToCatalogue(pkg.id)}
+                    disabled={isInCatalogue}
+                  >
+                    <Text style={s.catalogueButtonText}>
+                      {isInCatalogue ? "Added" : "Add"}
+                    </Text>
+                  </Pressable>
+                </View>
               </View>
             );
           })
@@ -190,7 +210,8 @@ const s = StyleSheet.create({
   topBarImage: {
     width: 54,
     height: 54,
-    resizeMode: "contain",
+    resizeMode: "cover",
+    borderRadius: 18,
   },
   content: {
     padding: 16,
@@ -225,6 +246,8 @@ const s = StyleSheet.create({
   metaRow: {
     flexDirection: "row",
     gap: 10,
+    flex: 1,
+    flexWrap: "wrap",
   },
   metaBadge: {
     borderWidth: 1,
@@ -232,11 +255,22 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     overflow: "hidden",
+    fontWeight: "700",
+  },
+  cardFooter: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
   catalogueButton: {
     borderRadius: 14,
-    paddingVertical: 14,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
     alignItems: "center",
+    justifyContent: "center",
+    minWidth: 92,
+    alignSelf: "flex-end",
   },
   catalogueButtonText: {
     color: "#FFFFFF",

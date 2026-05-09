@@ -106,10 +106,28 @@ export default function DistributionPackageCategoryScreen() {
               </Text>
 
               <View style={s.metaRow}>
-                <Text style={[s.metaBadge, { color: theme.colors.textMuted, borderColor: theme.colors.border }]}>
+                <Text
+                  style={[
+                    s.metaBadge,
+                    {
+                      color: theme.colors.text,
+                      borderColor: theme.colors.surfaceAlt,
+                      backgroundColor: theme.colors.surfaceAlt,
+                    },
+                  ]}
+                >
                   {pkg.tasks.length} tasks
                 </Text>
-                <Text style={[s.metaBadge, { color: theme.colors.textMuted, borderColor: theme.colors.border }]}>
+                <Text
+                  style={[
+                    s.metaBadge,
+                    {
+                      color: theme.colors.text,
+                      borderColor: theme.colors.tabIconActive,
+                      backgroundColor: theme.colors.tabIconActive,
+                    },
+                  ]}
+                >
                   {pkg.rewards.length} rewards
                 </Text>
               </View>
@@ -149,7 +167,8 @@ const s = StyleSheet.create({
   topBarImage: {
     width: 54,
     height: 54,
-    resizeMode: "contain",
+    resizeMode: "cover",
+    borderRadius: 18,
   },
   content: {
     padding: 16,
@@ -191,5 +210,6 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     overflow: "hidden",
+    fontWeight: "700",
   },
 });

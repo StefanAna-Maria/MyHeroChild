@@ -15,16 +15,28 @@ import { useTheme } from "../../../../src/context/ThemeContext";
 import { api } from "../../../../src/services/api";
 import { TaskItem } from "../../../../constants/parentCatalogue";
 
+type FormErrors = {
+  title?: string;
+  xp?: string;
+  rewardPoints?: string;
+  type?: string;
+};
+
+const INTEGER_ERROR = "This area must contain an integer number";
+
+const isNaturalNumber = (value: string) => /^(0|[1-9]\d*)$/.test(value.trim());
+
 export default function DistributionMyTasksScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [title, setTitle] = useState("");
-  const [xp, setXp] = useState("0");
-  const [rewardPoints, setRewardPoints] = useState("0");
+  const [xp, setXp] = useState("");
+  const [rewardPoints, setRewardPoints] = useState("");
   const [type, setType] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
   const visibleTasks = editingId ? tasks.filter((task) => task.id !== editingId) : tasks;
 
   const loadTasks = useCallback(async () => {
@@ -40,19 +52,44 @@ export default function DistributionMyTasksScreen() {
 
   const resetForm = () => {
     setTitle("");
-    setXp("0");
-    setRewardPoints("0");
+    setXp("");
+    setRewardPoints("");
     setType("");
     setEditingId(null);
     setIsFormVisible(false);
+    setErrors({});
+  };
+
+  const validateForm = () => {
+    const nextErrors: FormErrors = {};
+
+    if (!title.trim()) {
+      nextErrors.title = "This field is required.";
+    }
+
+    if (!type.trim()) {
+      nextErrors.type = "This field is required.";
+    }
+
+    if (!isNaturalNumber(xp)) {
+      nextErrors.xp = INTEGER_ERROR;
+    }
+
+    if (!isNaturalNumber(rewardPoints)) {
+      nextErrors.rewardPoints = INTEGER_ERROR;
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleCreate = () => {
     setTitle("");
-    setXp("0");
-    setRewardPoints("0");
+    setXp("");
+    setRewardPoints("");
     setType("");
     setEditingId(null);
+    setErrors({});
     setIsFormVisible(true);
   };
 
@@ -62,21 +99,21 @@ export default function DistributionMyTasksScreen() {
     setRewardPoints(String(task.rewardPoints));
     setType(task.type ?? "");
     setEditingId(task.id);
+    setErrors({});
     setIsFormVisible(true);
   };
 
   const handleSave = async () => {
-    const payload = {
-      title: title.trim(),
-      xp: Number(xp) || 0,
-      rewardPoints: Number(rewardPoints) || 0,
-      type: type.trim(),
-    };
-
-    if (!payload.title) {
-      Alert.alert("Missing title", "Please enter a title for this task.");
+    if (!validateForm()) {
       return;
     }
+
+    const payload = {
+      title: title.trim(),
+      xp: Number(xp),
+      rewardPoints: Number(rewardPoints),
+      type: type.trim(),
+    };
 
     if (editingId) {
       await api.put(`/parent/catalog/tasks/${editingId}`, payload);
@@ -152,36 +189,103 @@ export default function DistributionMyTasksScreen() {
               {editingId ? "Edit Custom Task" : "Create Custom Task"}
             </Text>
 
-            <TextInput
-              placeholder="Task title"
-              placeholderTextColor={theme.colors.textMuted}
-              value={title}
-              onChangeText={setTitle}
-              style={[s.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            />
-            <TextInput
-              placeholder="XP"
-              placeholderTextColor={theme.colors.textMuted}
-              value={xp}
-              onChangeText={setXp}
-              keyboardType="numeric"
-              style={[s.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            />
-            <TextInput
-              placeholder="Reward Points"
-              placeholderTextColor={theme.colors.textMuted}
-              value={rewardPoints}
-              onChangeText={setRewardPoints}
-              keyboardType="numeric"
-              style={[s.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            />
-            <TextInput
-              placeholder="Type"
-              placeholderTextColor={theme.colors.textMuted}
-              value={type}
-              onChangeText={setType}
-              style={[s.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            />
+            <View>
+              <TextInput
+                placeholder="Task title"
+                placeholderTextColor={errors.title ? theme.colors.error : theme.colors.textMuted}
+                value={title}
+                onChangeText={(value) => {
+                  setTitle(value);
+                  setErrors((current) => ({ ...current, title: undefined }));
+                }}
+                style={[
+                  s.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: errors.title ? theme.colors.error : theme.colors.border,
+                  },
+                ]}
+              />
+              {errors.title ? (
+                <Text style={[s.errorText, { color: theme.colors.error }]}>{errors.title}</Text>
+              ) : null}
+            </View>
+
+            <View>
+              <TextInput
+                placeholder={errors.xp && !xp ? INTEGER_ERROR : "XP"}
+                placeholderTextColor={errors.xp ? theme.colors.error : theme.colors.textMuted}
+                value={xp}
+                onChangeText={(value) => {
+                  setXp(value);
+                  setErrors((current) => ({ ...current, xp: undefined }));
+                }}
+                keyboardType="number-pad"
+                style={[
+                  s.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: errors.xp ? theme.colors.error : theme.colors.border,
+                  },
+                ]}
+              />
+              {errors.xp && xp ? (
+                <Text style={[s.errorText, { color: theme.colors.error }]}>{errors.xp}</Text>
+              ) : null}
+            </View>
+
+            <View>
+              <TextInput
+                placeholder={
+                  errors.rewardPoints && !rewardPoints ? INTEGER_ERROR : "Reward Points"
+                }
+                placeholderTextColor={
+                  errors.rewardPoints ? theme.colors.error : theme.colors.textMuted
+                }
+                value={rewardPoints}
+                onChangeText={(value) => {
+                  setRewardPoints(value);
+                  setErrors((current) => ({ ...current, rewardPoints: undefined }));
+                }}
+                keyboardType="number-pad"
+                style={[
+                  s.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: errors.rewardPoints
+                      ? theme.colors.error
+                      : theme.colors.border,
+                  },
+                ]}
+              />
+              {errors.rewardPoints && rewardPoints ? (
+                <Text style={[s.errorText, { color: theme.colors.error }]}>
+                  {errors.rewardPoints}
+                </Text>
+              ) : null}
+            </View>
+
+            <View>
+              <TextInput
+                placeholder="Type"
+                placeholderTextColor={errors.type ? theme.colors.error : theme.colors.textMuted}
+                value={type}
+                onChangeText={(value) => {
+                  setType(value);
+                  setErrors((current) => ({ ...current, type: undefined }));
+                }}
+                style={[
+                  s.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: errors.type ? theme.colors.error : theme.colors.border,
+                  },
+                ]}
+              />
+              {errors.type ? (
+                <Text style={[s.errorText, { color: theme.colors.error }]}>{errors.type}</Text>
+              ) : null}
+            </View>
 
             <View style={s.formActions}>
               <Pressable
@@ -227,21 +331,13 @@ export default function DistributionMyTasksScreen() {
               ]}
             >
               <View style={s.iconActions}>
-                <Pressable
-                  onPress={() => handleEdit(task)}
-                  style={s.iconButton}
-                  hitSlop={8}
-                >
+                <Pressable onPress={() => handleEdit(task)} style={s.iconButton} hitSlop={8}>
                   <Image
                     source={require("../../../../assets/button_icons/edit.png")}
                     style={s.iconImage}
                   />
                 </Pressable>
-                <Pressable
-                  onPress={() => handleDelete(task)}
-                  style={s.iconButton}
-                  hitSlop={8}
-                >
+                <Pressable onPress={() => handleDelete(task)} style={s.iconButton} hitSlop={8}>
                   <Image
                     source={require("../../../../assets/button_icons/delete.png")}
                     style={s.iconImage}
@@ -260,9 +356,7 @@ export default function DistributionMyTasksScreen() {
 
                 <View style={s.metricGroup}>
                   <View style={s.metricItem}>
-                    <Text style={[s.metricValue, { color: theme.colors.text }]}>
-                      {task.xp}
-                    </Text>
+                    <Text style={[s.metricValue, { color: theme.colors.text }]}>{task.xp}</Text>
                     <Image
                       source={require("../../../../assets/icons/xp.png")}
                       style={s.metricIcon}
@@ -345,6 +439,11 @@ const s = StyleSheet.create({
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "600",
   },
   formActions: {
     flexDirection: "row",

@@ -125,8 +125,8 @@ const s = StyleSheet.create({
   cardImage: {
     width: 72,
     height: 72,
-    resizeMode: "contain",
-    borderRadius: 18,
+    resizeMode: "cover",
+    borderRadius: 22,
   },
   cardTextWrap: {
     flex: 1,

@@ -300,7 +300,8 @@ const s = StyleSheet.create({
   rewardImage: {
     width: 56,
     height: 56,
-    resizeMode: "contain",
+    resizeMode: "cover",
+    borderRadius: 28,
   },
   rewardTextWrap: {
     flex: 1,

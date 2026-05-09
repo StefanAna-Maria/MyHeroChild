@@ -11,6 +11,7 @@ import lombok.Data;
 public class UserMeResponse {
 
     private String username;
+    private String email;
     private UserRole role;
     private int level;
     private int xp;

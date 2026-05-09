@@ -1,10 +1,11 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useState, ReactNode } from "react";
 import { api } from "../services/api";
 import { useAuth } from "../auth/AuthContext";
 import { AvatarType } from "@/constants/avatars";
 
 type User = {
   username: string;
+  email?: string;
   role: "ADMIN" | "PARENT" | "CHILD";
   level: number;
   xp: number;
@@ -24,7 +25,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const { token } = useAuth();
   const [user, setUser] = useState<User | null>(null);
 
-  const fetchUser = async () => {
+  const fetchUser = useCallback(async () => {
 
     if (!token) {
       setUser(null);
@@ -44,11 +45,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
       setUser(null);
 
     }
-  };
+  }, [token]);
 
   useEffect(() => {
     fetchUser();
-  }, [token]);
+  }, [fetchUser]);
 
   return (
     <UserContext.Provider value={{ user, refreshUser: fetchUser }}>

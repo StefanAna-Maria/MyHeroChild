@@ -16,15 +16,26 @@ import { api } from "../../../../src/services/api";
 import { RewardItem } from "../../../../constants/parentCatalogue";
 import { getRewardImage } from "../../../../constants/rewardImages";
 
+type FormErrors = {
+  title?: string;
+  price?: string;
+  type?: string;
+};
+
+const INTEGER_ERROR = "This area must contain an integer number";
+
+const isNaturalNumber = (value: string) => /^(0|[1-9]\d*)$/.test(value.trim());
+
 export default function DistributionMyRewardsScreen() {
   const router = useRouter();
   const theme = useTheme();
   const [rewards, setRewards] = useState<RewardItem[]>([]);
   const [title, setTitle] = useState("");
-  const [price, setPrice] = useState("0");
+  const [price, setPrice] = useState("");
   const [type, setType] = useState("");
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
+  const [errors, setErrors] = useState<FormErrors>({});
   const visibleRewards = editingId
     ? rewards.filter((reward) => reward.id !== editingId)
     : rewards;
@@ -42,17 +53,38 @@ export default function DistributionMyRewardsScreen() {
 
   const resetForm = () => {
     setTitle("");
-    setPrice("0");
+    setPrice("");
     setType("");
     setEditingId(null);
     setIsFormVisible(false);
+    setErrors({});
+  };
+
+  const validateForm = () => {
+    const nextErrors: FormErrors = {};
+
+    if (!title.trim()) {
+      nextErrors.title = "This field is required.";
+    }
+
+    if (!type.trim()) {
+      nextErrors.type = "This field is required.";
+    }
+
+    if (!isNaturalNumber(price)) {
+      nextErrors.price = INTEGER_ERROR;
+    }
+
+    setErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
   const handleCreate = () => {
     setTitle("");
-    setPrice("0");
+    setPrice("");
     setType("");
     setEditingId(null);
+    setErrors({});
     setIsFormVisible(true);
   };
 
@@ -61,20 +93,20 @@ export default function DistributionMyRewardsScreen() {
     setPrice(String(reward.price));
     setType(reward.type ?? "");
     setEditingId(reward.id);
+    setErrors({});
     setIsFormVisible(true);
   };
 
   const handleSave = async () => {
-    const payload = {
-      title: title.trim(),
-      price: Number(price) || 0,
-      type: type.trim(),
-    };
-
-    if (!payload.title) {
-      Alert.alert("Missing title", "Please enter a title for this reward.");
+    if (!validateForm()) {
       return;
     }
+
+    const payload = {
+      title: title.trim(),
+      price: Number(price),
+      type: type.trim(),
+    };
 
     if (editingId) {
       await api.put(`/parent/catalog/rewards/${editingId}`, payload);
@@ -150,28 +182,72 @@ export default function DistributionMyRewardsScreen() {
               {editingId ? "Edit Custom Reward" : "Create Custom Reward"}
             </Text>
 
-            <TextInput
-              placeholder="Reward title"
-              placeholderTextColor={theme.colors.textMuted}
-              value={title}
-              onChangeText={setTitle}
-              style={[s.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            />
-            <TextInput
-              placeholder="Price"
-              placeholderTextColor={theme.colors.textMuted}
-              value={price}
-              onChangeText={setPrice}
-              keyboardType="numeric"
-              style={[s.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            />
-            <TextInput
-              placeholder="Type (toy, screen_time...)"
-              placeholderTextColor={theme.colors.textMuted}
-              value={type}
-              onChangeText={setType}
-              style={[s.input, { color: theme.colors.text, borderColor: theme.colors.border }]}
-            />
+            <View>
+              <TextInput
+                placeholder="Reward title"
+                placeholderTextColor={errors.title ? theme.colors.error : theme.colors.textMuted}
+                value={title}
+                onChangeText={(value) => {
+                  setTitle(value);
+                  setErrors((current) => ({ ...current, title: undefined }));
+                }}
+                style={[
+                  s.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: errors.title ? theme.colors.error : theme.colors.border,
+                  },
+                ]}
+              />
+              {errors.title ? (
+                <Text style={[s.errorText, { color: theme.colors.error }]}>{errors.title}</Text>
+              ) : null}
+            </View>
+
+            <View>
+              <TextInput
+                placeholder={errors.price && !price ? INTEGER_ERROR : "Price"}
+                placeholderTextColor={errors.price ? theme.colors.error : theme.colors.textMuted}
+                value={price}
+                onChangeText={(value) => {
+                  setPrice(value);
+                  setErrors((current) => ({ ...current, price: undefined }));
+                }}
+                keyboardType="number-pad"
+                style={[
+                  s.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: errors.price ? theme.colors.error : theme.colors.border,
+                  },
+                ]}
+              />
+              {errors.price && price ? (
+                <Text style={[s.errorText, { color: theme.colors.error }]}>{errors.price}</Text>
+              ) : null}
+            </View>
+
+            <View>
+              <TextInput
+                placeholder="Type (toy, screen_time...)"
+                placeholderTextColor={errors.type ? theme.colors.error : theme.colors.textMuted}
+                value={type}
+                onChangeText={(value) => {
+                  setType(value);
+                  setErrors((current) => ({ ...current, type: undefined }));
+                }}
+                style={[
+                  s.input,
+                  {
+                    color: theme.colors.text,
+                    borderColor: errors.type ? theme.colors.error : theme.colors.border,
+                  },
+                ]}
+              />
+              {errors.type ? (
+                <Text style={[s.errorText, { color: theme.colors.error }]}>{errors.type}</Text>
+              ) : null}
+            </View>
 
             <View style={s.formActions}>
               <Pressable
@@ -220,21 +296,13 @@ export default function DistributionMyRewardsScreen() {
                 ]}
               >
                 <View style={s.iconActions}>
-                  <Pressable
-                    onPress={() => handleEdit(reward)}
-                    style={s.iconButton}
-                    hitSlop={8}
-                  >
+                  <Pressable onPress={() => handleEdit(reward)} style={s.iconButton} hitSlop={8}>
                     <Image
                       source={require("../../../../assets/button_icons/edit.png")}
                       style={s.iconImage}
                     />
                   </Pressable>
-                  <Pressable
-                    onPress={() => handleDelete(reward)}
-                    style={s.iconButton}
-                    hitSlop={8}
-                  >
+                  <Pressable onPress={() => handleDelete(reward)} style={s.iconButton} hitSlop={8}>
                     <Image
                       source={require("../../../../assets/button_icons/delete.png")}
                       style={s.iconImage}
@@ -268,7 +336,6 @@ export default function DistributionMyRewardsScreen() {
                     />
                   </View>
                 </View>
-
               </View>
             );
           })
@@ -336,6 +403,11 @@ const s = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 12,
   },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "600",
+  },
   formActions: {
     flexDirection: "row",
     gap: 10,
@@ -372,7 +444,8 @@ const s = StyleSheet.create({
   rewardImage: {
     width: 56,
     height: 56,
-    resizeMode: "contain",
+    resizeMode: "cover",
+    borderRadius: 28,
   },
   rewardTextWrap: {
     flex: 1,
@@ -397,10 +470,6 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
-  },
-  metricRow: {
-    flexDirection: "row",
-    alignItems: "flex-end",
   },
   metricItem: {
     flexDirection: "row",
