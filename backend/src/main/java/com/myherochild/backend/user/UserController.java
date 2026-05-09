@@ -1,6 +1,9 @@
 package com.myherochild.backend.user;
 
 import com.myherochild.backend.common.dto.ApiResponse;
+import com.myherochild.backend.parent.ParentProfileService;
+import com.myherochild.backend.user.dto.UpdateUserProfileRequest;
+import com.myherochild.backend.user.dto.UpdateUserProfileResponse;
 import com.myherochild.backend.user.dto.UserMeResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
@@ -14,6 +17,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserRepository userRepository;
+    private final ParentProfileService parentProfileService;
 
     // GET CURRENT USER (folosit de frontend pentru header)
     @GetMapping("/me")
@@ -26,6 +30,7 @@ public class UserController {
 
         UserMeResponse response = UserMeResponse.builder()
                 .username(user.getUsername())
+                .email(user.getEmail())
                 .role(user.getRole())
                 .level(user.getLevel())
                 .xp(user.getXp())
@@ -34,6 +39,15 @@ public class UserController {
                 .build();
 
         return ApiResponse.success("User fetched successfully", response);
+    }
+
+    @PutMapping("/me")
+    public ApiResponse<UpdateUserProfileResponse> updateCurrentUser(
+            Authentication authentication,
+            @RequestBody UpdateUserProfileRequest request
+    ) {
+        UpdateUserProfileResponse response = parentProfileService.updateProfile(authentication.getName(), request);
+        return ApiResponse.success("Profile updated successfully", response);
     }
 
     // UPDATE AVATAR (folosit de AvatarPicker)

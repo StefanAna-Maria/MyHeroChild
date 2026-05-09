@@ -10,8 +10,10 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../../../src/services/api";
-import { rewardImages, RewardType } from "../../../../constants/rewardImages";
+import { AGE_CATEGORIES } from "../../../../constants/parentCatalogue";
+import { getRewardImage } from "../../../../constants/rewardImages";
 import { useTheme } from "../../../../src/context/ThemeContext";
 
 type TaskItem = {
@@ -38,18 +40,84 @@ type PackageDetail = {
   rewards: RewardItem[];
 };
 
-const emptyTask = (): TaskItem => ({
+type TaskDraft = {
+  id?: number;
+  title: string;
+  xp: string;
+  rewardPoints: string;
+  type: string;
+};
+
+type RewardDraft = {
+  id?: number;
+  title: string;
+  price: string;
+  type: string;
+};
+
+type PackageDraft = {
+  id: number;
+  title: string;
+  ageGroup: string;
+  description: string;
+  tasks: TaskDraft[];
+  rewards: RewardDraft[];
+};
+
+type PackageErrors = {
+  title?: string;
+  ageGroup?: string;
+  description?: string;
+};
+
+type TaskErrors = {
+  title?: string;
+  xp?: string;
+  rewardPoints?: string;
+  type?: string;
+};
+
+type RewardErrors = {
+  title?: string;
+  price?: string;
+  type?: string;
+};
+
+type EditingState<T> = {
+  index: number;
+  isNew: boolean;
+  original: T | null;
+} | null;
+
+const INTEGER_ERROR = "This area must contain an integer number";
+
+const emptyTask = (): TaskDraft => ({
   title: "",
-  xp: 0,
-  rewardPoints: 0,
+  xp: "",
+  rewardPoints: "",
   type: "",
 });
 
-const emptyReward = (): RewardItem => ({
+const emptyReward = (): RewardDraft => ({
   title: "",
-  price: 0,
+  price: "",
   type: "",
 });
+
+const mapToDraft = (pkg: PackageDetail): PackageDraft => ({
+  ...pkg,
+  tasks: pkg.tasks.map((task) => ({
+    ...task,
+    xp: String(task.xp),
+    rewardPoints: String(task.rewardPoints),
+  })),
+  rewards: pkg.rewards.map((reward) => ({
+    ...reward,
+    price: String(reward.price),
+  })),
+});
+
+const isNaturalNumber = (value: string) => /^(0|[1-9]\d*)$/.test(value.trim());
 
 export default function PackageDetailScreen() {
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
@@ -57,19 +125,30 @@ export default function PackageDetailScreen() {
   const theme = useTheme();
 
   const [pkg, setPkg] = useState<PackageDetail | null>(null);
-  const [draftPkg, setDraftPkg] = useState<PackageDetail | null>(null);
+  const [draftPkg, setDraftPkg] = useState<PackageDraft | null>(null);
+  const [packageErrors, setPackageErrors] = useState<PackageErrors>({});
+  const [taskErrors, setTaskErrors] = useState<TaskErrors[]>([]);
+  const [rewardErrors, setRewardErrors] = useState<RewardErrors[]>([]);
   const [isEditingPackage, setIsEditingPackage] = useState(false);
-  const [editingTaskIndex, setEditingTaskIndex] = useState<number | null>(null);
-  const [editingRewardIndex, setEditingRewardIndex] = useState<number | null>(null);
+  const [editingTaskState, setEditingTaskState] = useState<EditingState<TaskDraft>>(null);
+  const [editingRewardState, setEditingRewardState] = useState<EditingState<RewardDraft>>(null);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleting, setIsDeleting] = useState(false);
+  const [isAgeDropdownOpen, setIsAgeDropdownOpen] = useState(false);
+
+  const syncDraftState = useCallback((data: PackageDetail) => {
+    const nextDraft = mapToDraft(data);
+    setDraftPkg(nextDraft);
+    setTaskErrors(nextDraft.tasks.map(() => ({})));
+    setRewardErrors(nextDraft.rewards.map(() => ({})));
+    setPackageErrors({});
+  }, []);
 
   const fetchPackage = useCallback(async () => {
     const res = await api.get(`/packages/${id}`);
     const data = res.data.data as PackageDetail;
     setPkg(data);
-    setDraftPkg(JSON.parse(JSON.stringify(data)));
-  }, [id]);
+    syncDraftState(data);
+  }, [id, syncDraftState]);
 
   useEffect(() => {
     fetchPackage();
@@ -77,88 +156,239 @@ export default function PackageDetailScreen() {
 
   useEffect(() => {
     if (edit === "1" && pkg) {
-      setDraftPkg(JSON.parse(JSON.stringify(pkg)));
+      syncDraftState(pkg);
       setIsEditingPackage(true);
-      setEditingTaskIndex(null);
-      setEditingRewardIndex(null);
+      setEditingTaskState(null);
+      setEditingRewardState(null);
+      setIsAgeDropdownOpen(false);
     }
-  }, [edit, pkg]);
+  }, [edit, pkg, syncDraftState]);
 
-  const updatePackageField = (field: "title" | "ageGroup" | "description", value: string) => {
-    setDraftPkg((current) => (current ? { ...current, [field]: value } : current));
+  const validatePackageInfo = () => {
+    if (!draftPkg) return false;
+
+    const nextErrors: PackageErrors = {};
+
+    if (!draftPkg.title.trim()) {
+      nextErrors.title = "This field is required.";
+    }
+
+    if (!draftPkg.ageGroup.trim()) {
+      nextErrors.ageGroup = "This field is required.";
+    }
+
+    if (!draftPkg.description.trim()) {
+      nextErrors.description = "This field is required.";
+    }
+
+    setPackageErrors(nextErrors);
+    return Object.keys(nextErrors).length === 0;
   };
 
-  const updateTask = (index: number, field: keyof TaskItem, value: string) => {
+  const validateTaskAt = (index: number) => {
+    if (!draftPkg) return false;
+
+    const task = draftPkg.tasks[index];
+    const nextErrors: TaskErrors = {};
+
+    if (!task.title.trim()) {
+      nextErrors.title = "This field is required.";
+    }
+
+    if (!task.type.trim()) {
+      nextErrors.type = "This field is required.";
+    }
+
+    if (!isNaturalNumber(task.xp)) {
+      nextErrors.xp = INTEGER_ERROR;
+    }
+
+    if (!isNaturalNumber(task.rewardPoints)) {
+      nextErrors.rewardPoints = INTEGER_ERROR;
+    }
+
+    setTaskErrors((current) =>
+      current.map((entry, entryIndex) => (entryIndex === index ? nextErrors : entry))
+    );
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const validateRewardAt = (index: number) => {
+    if (!draftPkg) return false;
+
+    const reward = draftPkg.rewards[index];
+    const nextErrors: RewardErrors = {};
+
+    if (!reward.title.trim()) {
+      nextErrors.title = "This field is required.";
+    }
+
+    if (!reward.type.trim()) {
+      nextErrors.type = "This field is required.";
+    }
+
+    if (!isNaturalNumber(reward.price)) {
+      nextErrors.price = INTEGER_ERROR;
+    }
+
+    setRewardErrors((current) =>
+      current.map((entry, entryIndex) => (entryIndex === index ? nextErrors : entry))
+    );
+
+    return Object.keys(nextErrors).length === 0;
+  };
+
+  const validateAllTasks = () => {
+    if (!draftPkg) return false;
+
+    const nextErrors = draftPkg.tasks.map<TaskErrors>((task) => {
+      const currentErrors: TaskErrors = {};
+
+      if (!task.title.trim()) {
+        currentErrors.title = "This field is required.";
+      }
+
+      if (!task.type.trim()) {
+        currentErrors.type = "This field is required.";
+      }
+
+      if (!isNaturalNumber(task.xp)) {
+        currentErrors.xp = INTEGER_ERROR;
+      }
+
+      if (!isNaturalNumber(task.rewardPoints)) {
+        currentErrors.rewardPoints = INTEGER_ERROR;
+      }
+
+      return currentErrors;
+    });
+
+    setTaskErrors(nextErrors);
+    return nextErrors.every((entry) => Object.keys(entry).length === 0);
+  };
+
+  const validateAllRewards = () => {
+    if (!draftPkg) return false;
+
+    const nextErrors = draftPkg.rewards.map<RewardErrors>((reward) => {
+      const currentErrors: RewardErrors = {};
+
+      if (!reward.title.trim()) {
+        currentErrors.title = "This field is required.";
+      }
+
+      if (!reward.type.trim()) {
+        currentErrors.type = "This field is required.";
+      }
+
+      if (!isNaturalNumber(reward.price)) {
+        currentErrors.price = INTEGER_ERROR;
+      }
+
+      return currentErrors;
+    });
+
+    setRewardErrors(nextErrors);
+    return nextErrors.every((entry) => Object.keys(entry).length === 0);
+  };
+
+  const updatePackageField = (
+    field: "title" | "ageGroup" | "description",
+    value: string
+  ) => {
+    setDraftPkg((current) => (current ? { ...current, [field]: value } : current));
+    setPackageErrors((current) => ({ ...current, [field]: undefined }));
+  };
+
+  const updateTask = (index: number, field: keyof TaskDraft, value: string) => {
     setDraftPkg((current) => {
       if (!current) return current;
 
       const tasks = [...current.tasks];
-      const currentTask = tasks[index];
       tasks[index] = {
-        ...currentTask,
-        [field]:
-          field === "xp" || field === "rewardPoints"
-            ? Number(value) || 0
-            : value,
+        ...tasks[index],
+        [field]: value,
       };
 
       return { ...current, tasks };
     });
+
+    setTaskErrors((current) =>
+      current.map((entry, entryIndex) =>
+        entryIndex === index ? { ...entry, [field]: undefined } : entry
+      )
+    );
   };
 
-  const updateReward = (index: number, field: keyof RewardItem, value: string) => {
+  const updateReward = (index: number, field: keyof RewardDraft, value: string) => {
     setDraftPkg((current) => {
       if (!current) return current;
 
       const rewards = [...current.rewards];
-      const currentReward = rewards[index];
       rewards[index] = {
-        ...currentReward,
-        [field]: field === "price" ? Number(value) || 0 : value,
+        ...rewards[index],
+        [field]: value,
       };
 
       return { ...current, rewards };
     });
+
+    setRewardErrors((current) =>
+      current.map((entry, entryIndex) =>
+        entryIndex === index ? { ...entry, [field]: undefined } : entry
+      )
+    );
   };
 
   const handleStartEdit = () => {
     if (!pkg) return;
-    setDraftPkg(JSON.parse(JSON.stringify(pkg)));
+    syncDraftState(pkg);
     setIsEditingPackage(true);
-    setEditingTaskIndex(null);
-    setEditingRewardIndex(null);
+    setEditingTaskState(null);
+    setEditingRewardState(null);
+    setIsAgeDropdownOpen(false);
   };
 
   const handleCancelEdit = () => {
     if (!pkg) return;
-    setDraftPkg(JSON.parse(JSON.stringify(pkg)));
+    syncDraftState(pkg);
     setIsEditingPackage(false);
-    setEditingTaskIndex(null);
-    setEditingRewardIndex(null);
+    setEditingTaskState(null);
+    setEditingRewardState(null);
+    setIsAgeDropdownOpen(false);
   };
 
   const handleSave = async () => {
     if (!draftPkg) return;
 
+    const isPackageValid = validatePackageInfo();
+    const areTasksValid = validateAllTasks();
+    const areRewardsValid = validateAllRewards();
+
+    if (!isPackageValid || !areTasksValid || !areRewardsValid) {
+      return;
+    }
+
     try {
       setIsSaving(true);
 
       const payload = {
-        title: draftPkg.title,
-        ageGroup: draftPkg.ageGroup,
-        description: draftPkg.description,
+        title: draftPkg.title.trim(),
+        ageGroup: draftPkg.ageGroup.trim(),
+        description: draftPkg.description.trim(),
         tasks: draftPkg.tasks.map((task) => ({
           id: task.id,
-          title: task.title,
-          xp: task.xp,
-          rewardPoints: task.rewardPoints,
-          type: task.type,
+          title: task.title.trim(),
+          xp: Number(task.xp),
+          rewardPoints: Number(task.rewardPoints),
+          type: task.type.trim(),
         })),
         rewards: draftPkg.rewards.map((reward) => ({
           id: reward.id,
-          title: reward.title,
-          price: reward.price,
-          type: reward.type,
+          title: reward.title.trim(),
+          price: Number(reward.price),
+          type: reward.type.trim(),
         })),
       };
 
@@ -166,10 +396,10 @@ export default function PackageDetailScreen() {
       const updated = res.data.data as PackageDetail;
 
       setPkg(updated);
-      setDraftPkg(JSON.parse(JSON.stringify(updated)));
+      syncDraftState(updated);
       setIsEditingPackage(false);
-      setEditingTaskIndex(null);
-      setEditingRewardIndex(null);
+      setEditingTaskState(null);
+      setEditingRewardState(null);
       router.replace("/(admin)/packages");
     } catch {
       Alert.alert("Save failed", "The package could not be updated.");
@@ -189,13 +419,10 @@ export default function PackageDetailScreen() {
           style: "destructive",
           onPress: async () => {
             try {
-              setIsDeleting(true);
               await api.delete(`/packages/${id}`);
               router.replace("/(admin)/packages");
             } catch {
               Alert.alert("Delete failed", "The package could not be deleted.");
-            } finally {
-              setIsDeleting(false);
             }
           },
         },
@@ -203,302 +430,768 @@ export default function PackageDetailScreen() {
     );
   };
 
+  const handleOpenTaskEdit = (index: number) => {
+    if (!draftPkg || editingTaskState) return;
+
+    setEditingTaskState({
+      index,
+      isNew: false,
+      original: { ...draftPkg.tasks[index] },
+    });
+  };
+
+  const handleOpenRewardEdit = (index: number) => {
+    if (!draftPkg || editingRewardState) return;
+
+    setEditingRewardState({
+      index,
+      isNew: false,
+      original: { ...draftPkg.rewards[index] },
+    });
+  };
+
+  const handleCancelTaskEdit = () => {
+    if (!draftPkg || !editingTaskState) return;
+
+    if (editingTaskState.isNew) {
+      setDraftPkg((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          tasks: current.tasks.filter((_, index) => index !== editingTaskState.index),
+        };
+      });
+
+      setTaskErrors((current) =>
+        current.filter((_, index) => index !== editingTaskState.index)
+      );
+    } else if (editingTaskState.original) {
+      setDraftPkg((current) => {
+        if (!current) return current;
+
+        const tasks = [...current.tasks];
+        tasks[editingTaskState.index] = editingTaskState.original as TaskDraft;
+        return { ...current, tasks };
+      });
+
+      setTaskErrors((current) =>
+        current.map((entry, index) => (index === editingTaskState.index ? {} : entry))
+      );
+    }
+
+    setEditingTaskState(null);
+  };
+
+  const handleCancelRewardEdit = () => {
+    if (!draftPkg || !editingRewardState) return;
+
+    if (editingRewardState.isNew) {
+      setDraftPkg((current) => {
+        if (!current) return current;
+        return {
+          ...current,
+          rewards: current.rewards.filter((_, index) => index !== editingRewardState.index),
+        };
+      });
+
+      setRewardErrors((current) =>
+        current.filter((_, index) => index !== editingRewardState.index)
+      );
+    } else if (editingRewardState.original) {
+      setDraftPkg((current) => {
+        if (!current) return current;
+
+        const rewards = [...current.rewards];
+        rewards[editingRewardState.index] = editingRewardState.original as RewardDraft;
+        return { ...current, rewards };
+      });
+
+      setRewardErrors((current) =>
+        current.map((entry, index) => (index === editingRewardState.index ? {} : entry))
+      );
+    }
+
+    setEditingRewardState(null);
+  };
+
+  const handleSaveTaskChanges = () => {
+    if (!editingTaskState) return;
+    const isValid = validateTaskAt(editingTaskState.index);
+    if (!isValid) return;
+    setEditingTaskState(null);
+  };
+
+  const handleSaveRewardChanges = () => {
+    if (!editingRewardState) return;
+    const isValid = validateRewardAt(editingRewardState.index);
+    if (!isValid) return;
+    setEditingRewardState(null);
+  };
+
   const handleDeleteTask = (index: number) => {
     setDraftPkg((current) => {
       if (!current) return current;
-
-      const tasks = current.tasks.filter((_, taskIndex) => taskIndex !== index);
-      return { ...current, tasks };
+      return {
+        ...current,
+        tasks: current.tasks.filter((_, taskIndex) => taskIndex !== index),
+      };
     });
 
-    setEditingTaskIndex((current) => {
-      if (current === null) return current;
-      if (current === index) return null;
-      if (current > index) return current - 1;
-      return current;
-    });
+    setTaskErrors((current) => current.filter((_, errorIndex) => errorIndex !== index));
+    setEditingTaskState(null);
   };
 
   const handleDeleteReward = (index: number) => {
     setDraftPkg((current) => {
       if (!current) return current;
-
-      const rewards = current.rewards.filter((_, rewardIndex) => rewardIndex !== index);
-      return { ...current, rewards };
+      return {
+        ...current,
+        rewards: current.rewards.filter((_, rewardIndex) => rewardIndex !== index),
+      };
     });
 
-    setEditingRewardIndex((current) => {
-      if (current === null) return current;
-      if (current === index) return null;
-      if (current > index) return current - 1;
-      return current;
-    });
+    setRewardErrors((current) => current.filter((_, errorIndex) => errorIndex !== index));
+    setEditingRewardState(null);
   };
 
   const addTask = () => {
+    if (!draftPkg || editingTaskState) return;
+
+    const isPackageValid = validatePackageInfo();
+    const areExistingTasksValid = validateAllTasks();
+
+    if (!isPackageValid || !areExistingTasksValid) {
+      return;
+    }
+
     setDraftPkg((current) => {
       if (!current) return current;
-      return { ...current, tasks: [...current.tasks, emptyTask()] };
+      return { ...current, tasks: [emptyTask(), ...current.tasks] };
     });
-    setEditingTaskIndex(draftPkg?.tasks.length ?? 0);
+    setTaskErrors((current) => [{}, ...current]);
+    setEditingTaskState({ index: 0, isNew: true, original: null });
   };
 
   const addReward = () => {
+    if (!draftPkg || editingRewardState) return;
+
+    const isPackageValid = validatePackageInfo();
+    const areExistingRewardsValid = validateAllRewards();
+
+    if (!isPackageValid || !areExistingRewardsValid) {
+      return;
+    }
+
     setDraftPkg((current) => {
       if (!current) return current;
-      return { ...current, rewards: [...current.rewards, emptyReward()] };
+      return { ...current, rewards: [emptyReward(), ...current.rewards] };
     });
-    setEditingRewardIndex(draftPkg?.rewards.length ?? 0);
+    setRewardErrors((current) => [{}, ...current]);
+    setEditingRewardState({ index: 0, isNew: true, original: null });
   };
 
   if (!draftPkg) {
     return null;
   }
 
+  const ageGroupLabel = draftPkg.ageGroup
+    ? `Age Group ${draftPkg.ageGroup}`
+    : "Select age group";
+
   return (
-    <ScrollView style={[s.container, { backgroundColor: theme.colors.background }]}>
-      <View style={[s.card, { backgroundColor: theme.colors.surface }]}>
-        {isEditingPackage ? (
-          <>
-            <TextInput
-              value={draftPkg.title}
-              onChangeText={(value) => updatePackageField("title", value)}
-              style={[s.titleInput, s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-              placeholder="Package title"
-              placeholderTextColor={theme.colors.textMuted}
-            />
+    <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
+      <View
+        style={[
+          s.topBar,
+          {
+            backgroundColor: theme.colors.surface,
+            borderBottomColor: theme.colors.border,
+          },
+        ]}
+      >
+        <Pressable
+          onPress={() => router.back()}
+          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+        >
+          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+        </Pressable>
 
-            <TextInput
-              value={draftPkg.ageGroup}
-              onChangeText={(value) => updatePackageField("ageGroup", value)}
-              style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-              placeholder="Age group"
-              placeholderTextColor={theme.colors.textMuted}
-            />
-
-            <TextInput
-              value={draftPkg.description}
-              onChangeText={(value) => updatePackageField("description", value)}
-              style={[s.input, s.multilineInput, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-              placeholder="Description"
-              placeholderTextColor={theme.colors.textMuted}
-              multiline
-            />
-          </>
-        ) : (
-          <>
-            <Text style={[s.title, { color: theme.colors.text }]}>{draftPkg.title}</Text>
-            <Text style={[s.meta, { color: theme.colors.textMuted }]}>Age: {draftPkg.ageGroup}</Text>
-            <Text style={[s.description, { color: theme.colors.text }]}>{draftPkg.description}</Text>
-          </>
-        )}
-
-        <View style={s.actionRow}>
-          {isEditingPackage ? (
-            <>
-              <Pressable
-                style={[s.primaryButton, { backgroundColor: theme.colors.primary }]}
-                onPress={handleSave}
-                disabled={isSaving}
-              >
-                <Text style={s.buttonText}>{isSaving ? "Saving..." : "Save"}</Text>
-              </Pressable>
-
-              <Pressable
-                style={[s.secondaryButton, { borderColor: theme.colors.border }]}
-                onPress={handleCancelEdit}
-              >
-                <Text style={[s.secondaryButtonText, { color: theme.colors.text }]}>Cancel</Text>
-              </Pressable>
-            </>
-          ) : (
-            <>
-              <Pressable
-                style={[s.primaryButton, { backgroundColor: theme.colors.primary }]}
-                onPress={handleStartEdit}
-              >
-                <Text style={s.buttonText}>Edit Package</Text>
-              </Pressable>
-
-              <Pressable
-                style={[s.dangerButton, { backgroundColor: theme.colors.error }]}
-                onPress={handleDeletePackage}
-                disabled={isDeleting}
-              >
-                <Text style={s.buttonText}>{isDeleting ? "Deleting..." : "Delete Package"}</Text>
-              </Pressable>
-            </>
-          )}
+        <View style={s.topBarText}>
+          <Text style={[s.topBarTitle, { color: theme.colors.text }]}>Package Details</Text>
+          <Text style={{ color: theme.colors.textMuted }}>
+            {isEditingPackage ? "Edit package content" : "Review package content"}
+          </Text>
         </View>
       </View>
 
-      <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Tasks</Text>
-
-      {draftPkg.tasks.map((task, index) => {
-        const isEditingTask = isEditingPackage && editingTaskIndex === index;
-
-        return (
-          <View key={task.id ?? `task-${index}`} style={[s.card, { backgroundColor: theme.colors.surface }]}>
-            {isEditingTask ? (
-              <>
-                <TextInput
-                  value={task.title}
-                  onChangeText={(value) => updateTask(index, "title", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Task title"
-                  placeholderTextColor={theme.colors.textMuted}
+      <ScrollView contentContainerStyle={s.content}>
+        <View
+          style={[
+            s.heroCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          {!isEditingPackage && (
+            <View style={s.heroActions}>
+              <Pressable onPress={handleStartEdit} style={s.iconButton} hitSlop={8}>
+                <Image
+                  source={require("../../../../assets/button_icons/edit.png")}
+                  style={s.iconImage}
                 />
+              </Pressable>
 
-                <TextInput
-                  value={String(task.xp)}
-                  onChangeText={(value) => updateTask(index, "xp", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="XP"
-                  placeholderTextColor={theme.colors.textMuted}
-                  keyboardType="numeric"
+              <Pressable onPress={handleDeletePackage} style={s.iconButton} hitSlop={8}>
+                <Image
+                  source={require("../../../../assets/button_icons/delete.png")}
+                  style={s.iconImage}
                 />
+              </Pressable>
+            </View>
+          )}
 
+          {isEditingPackage ? (
+            <>
+              <View>
                 <TextInput
-                  value={String(task.rewardPoints)}
-                  onChangeText={(value) => updateTask(index, "rewardPoints", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Reward Points"
-                  placeholderTextColor={theme.colors.textMuted}
-                  keyboardType="numeric"
+                  value={draftPkg.title}
+                  onChangeText={(value) => updatePackageField("title", value)}
+                  style={[
+                    s.titleInput,
+                    s.input,
+                    inputColors(theme.colors.surfaceAlt, theme.colors.text),
+                    packageErrors.title && { borderColor: theme.colors.error },
+                  ]}
+                  placeholder="Package title"
+                  placeholderTextColor={
+                    packageErrors.title ? theme.colors.error : theme.colors.textMuted
+                  }
                 />
+                {packageErrors.title ? (
+                  <Text style={[s.errorText, { color: theme.colors.error }]}>
+                    {packageErrors.title}
+                  </Text>
+                ) : null}
+              </View>
 
+              <View>
+                <Pressable
+                  onPress={() => setIsAgeDropdownOpen((current) => !current)}
+                  style={[
+                    s.selectField,
+                    {
+                      backgroundColor: theme.colors.surfaceAlt,
+                    },
+                    packageErrors.ageGroup && { borderColor: theme.colors.error },
+                  ]}
+                >
+                  <Text
+                    style={{
+                      color: draftPkg.ageGroup ? theme.colors.text : theme.colors.textMuted,
+                      fontSize: 16,
+                    }}
+                  >
+                    {ageGroupLabel}
+                  </Text>
+
+                  <Ionicons
+                    name={isAgeDropdownOpen ? "chevron-up" : "chevron-down"}
+                    size={18}
+                    color={theme.colors.textMuted}
+                  />
+                </Pressable>
+
+                {isAgeDropdownOpen ? (
+                  <View
+                    style={[
+                      s.dropdown,
+                      {
+                        backgroundColor: theme.colors.surfaceAlt,
+                        borderColor: theme.colors.border,
+                      },
+                    ]}
+                  >
+                    {AGE_CATEGORIES.map((category) => (
+                      <Pressable
+                        key={category.key}
+                        onPress={() => {
+                          updatePackageField("ageGroup", category.key);
+                          setIsAgeDropdownOpen(false);
+                        }}
+                        style={[
+                          s.dropdownOption,
+                          category.key === draftPkg.ageGroup && {
+                            backgroundColor: theme.colors.primary,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={{
+                            color: theme.colors.text,
+                            fontWeight: category.key === draftPkg.ageGroup ? "700" : "500",
+                          }}
+                        >
+                          {category.key}
+                        </Text>
+                      </Pressable>
+                    ))}
+                  </View>
+                ) : null}
+
+                {packageErrors.ageGroup ? (
+                  <Text style={[s.errorText, { color: theme.colors.error }]}>
+                    {packageErrors.ageGroup}
+                  </Text>
+                ) : null}
+              </View>
+
+              <View>
                 <TextInput
-                  value={task.type}
-                  onChangeText={(value) => updateTask(index, "type", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Type"
-                  placeholderTextColor={theme.colors.textMuted}
+                  value={draftPkg.description}
+                  onChangeText={(value) => updatePackageField("description", value)}
+                  style={[
+                    s.input,
+                    s.multilineInput,
+                    inputColors(theme.colors.surfaceAlt, theme.colors.text),
+                    packageErrors.description && { borderColor: theme.colors.error },
+                  ]}
+                  placeholder="Description"
+                  placeholderTextColor={
+                    packageErrors.description ? theme.colors.error : theme.colors.textMuted
+                  }
+                  multiline
                 />
-              </>
-            ) : (
-              <>
-                <Text style={[s.itemTitle, { color: theme.colors.text }]}>{task.title}</Text>
-                <Text style={{ color: theme.colors.textMuted }}>{task.xp} XP</Text>
-                <Text style={{ color: theme.colors.textMuted }}>{task.rewardPoints} RP</Text>
-                <Text style={{ color: theme.colors.textMuted }}>Type: {task.type || "-"}</Text>
-              </>
-            )}
+                {packageErrors.description ? (
+                  <Text style={[s.errorText, { color: theme.colors.error }]}>
+                    {packageErrors.description}
+                  </Text>
+                ) : null}
+              </View>
+            </>
+          ) : (
+            <>
+              <Text style={[s.heroTitle, { color: theme.colors.text }]}>{draftPkg.title}</Text>
+              <Text style={[s.heroMeta, { color: theme.colors.textMuted }]}>
+                Age Group {draftPkg.ageGroup}
+              </Text>
+              <Text style={[s.heroDescription, { color: theme.colors.textMuted }]}>
+                {draftPkg.description || "No description provided."}
+              </Text>
+            </>
+          )}
+
+          {isEditingPackage && (
+            <View style={s.formActions}>
+              <Pressable
+                style={[s.primaryAction, { backgroundColor: theme.colors.primary }]}
+                onPress={handleSave}
+                disabled={isSaving}
+              >
+                <Text style={s.primaryActionText}>{isSaving ? "Saving..." : "Save"}</Text>
+              </Pressable>
+
+              <Pressable
+                style={[s.secondaryAction, { backgroundColor: theme.colors.surfaceAlt }]}
+                onPress={handleCancelEdit}
+              >
+                <Text style={[s.secondaryActionText, { color: theme.colors.text }]}>Cancel</Text>
+              </Pressable>
+            </View>
+          )}
+        </View>
+
+        <View
+          style={[
+            s.sectionCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <View style={s.sectionHeader}>
+            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Tasks</Text>
 
             {isEditingPackage && (
-              <View style={s.itemActionRow}>
-                <Pressable
-                  style={[s.secondaryButton, { borderColor: theme.colors.border }]}
-                  onPress={() =>
-                    setEditingTaskIndex(isEditingTask ? null : index)
-                  }
-                >
-                  <Text style={[s.secondaryButtonText, { color: theme.colors.text }]}>
-                    {isEditingTask ? "Done" : "Edit"}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  style={[s.dangerOutlineButton, { borderColor: theme.colors.error }]}
-                  onPress={() => handleDeleteTask(index)}
-                >
-                  <Text style={[s.dangerOutlineText, { color: theme.colors.error }]}>Delete</Text>
-                </Pressable>
-              </View>
+              <Pressable
+                style={[s.addChip, { backgroundColor: theme.colors.primary }]}
+                onPress={addTask}
+              >
+                <Text style={s.addChipText}>+ Add Task</Text>
+              </Pressable>
             )}
           </View>
-        );
-      })}
 
-      {isEditingPackage && (
-        <Pressable
-          style={[s.addButton, { borderColor: theme.colors.primary }]}
-          onPress={addTask}
-        >
-          <Text style={[s.addButtonText, { color: theme.colors.primary }]}>+ Add Task</Text>
-        </Pressable>
-      )}
+          {draftPkg.tasks.map((task, index) => {
+            const isEditingTask = editingTaskState?.index === index;
+            const taskError = taskErrors[index] ?? {};
 
-      <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Rewards</Text>
+            return (
+              <View
+                key={task.id ?? `task-${index}`}
+                style={[s.itemCard, { backgroundColor: theme.colors.surfaceAlt }]}
+              >
+                {isEditingTask ? (
+                  <>
+                    <View>
+                      <TextInput
+                        value={task.title}
+                        onChangeText={(value) => updateTask(index, "title", value)}
+                        style={[
+                          s.input,
+                          inputColors(theme.colors.surface, theme.colors.text),
+                          taskError.title && { borderColor: theme.colors.error },
+                        ]}
+                        placeholder="Task title"
+                        placeholderTextColor={
+                          taskError.title ? theme.colors.error : theme.colors.textMuted
+                        }
+                      />
+                      {taskError.title ? (
+                        <Text style={[s.errorText, { color: theme.colors.error }]}>
+                          {taskError.title}
+                        </Text>
+                      ) : null}
+                    </View>
 
-      {draftPkg.rewards.map((reward, index) => {
-        const isEditingReward = isEditingPackage && editingRewardIndex === index;
-        const imageSource =
-          rewardImages[(reward.type as RewardType) || "default"] ?? rewardImages.default;
+                    <View>
+                      <TextInput
+                        value={task.xp}
+                        onChangeText={(value) => updateTask(index, "xp", value)}
+                        style={[
+                          s.input,
+                          inputColors(theme.colors.surface, theme.colors.text),
+                          taskError.xp && { borderColor: theme.colors.error },
+                        ]}
+                        placeholder={taskError.xp && !task.xp ? INTEGER_ERROR : "XP"}
+                        placeholderTextColor={
+                          taskError.xp ? theme.colors.error : theme.colors.textMuted
+                        }
+                        keyboardType="number-pad"
+                      />
+                      {taskError.xp && task.xp ? (
+                        <Text style={[s.errorText, { color: theme.colors.error }]}>
+                          {taskError.xp}
+                        </Text>
+                      ) : null}
+                    </View>
 
-        return (
-          <View key={reward.id ?? `reward-${index}`} style={[s.card, { backgroundColor: theme.colors.surface }]}>
-            {isEditingReward ? (
-              <>
-                <TextInput
-                  value={reward.title}
-                  onChangeText={(value) => updateReward(index, "title", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Reward title"
-                  placeholderTextColor={theme.colors.textMuted}
-                />
+                    <View>
+                      <TextInput
+                        value={task.rewardPoints}
+                        onChangeText={(value) => updateTask(index, "rewardPoints", value)}
+                        style={[
+                          s.input,
+                          inputColors(theme.colors.surface, theme.colors.text),
+                          taskError.rewardPoints && { borderColor: theme.colors.error },
+                        ]}
+                        placeholder={
+                          taskError.rewardPoints && !task.rewardPoints
+                            ? INTEGER_ERROR
+                            : "Reward Points"
+                        }
+                        placeholderTextColor={
+                          taskError.rewardPoints
+                            ? theme.colors.error
+                            : theme.colors.textMuted
+                        }
+                        keyboardType="number-pad"
+                      />
+                      {taskError.rewardPoints && task.rewardPoints ? (
+                        <Text style={[s.errorText, { color: theme.colors.error }]}>
+                          {taskError.rewardPoints}
+                        </Text>
+                      ) : null}
+                    </View>
 
-                <TextInput
-                  value={String(reward.price)}
-                  onChangeText={(value) => updateReward(index, "price", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Price"
-                  placeholderTextColor={theme.colors.textMuted}
-                  keyboardType="numeric"
-                />
+                    <View>
+                      <TextInput
+                        value={task.type}
+                        onChangeText={(value) => updateTask(index, "type", value)}
+                        style={[
+                          s.input,
+                          inputColors(theme.colors.surface, theme.colors.text),
+                          taskError.type && { borderColor: theme.colors.error },
+                        ]}
+                        placeholder="Type"
+                        placeholderTextColor={
+                          taskError.type ? theme.colors.error : theme.colors.textMuted
+                        }
+                      />
+                      {taskError.type ? (
+                        <Text style={[s.errorText, { color: theme.colors.error }]}>
+                          {taskError.type}
+                        </Text>
+                      ) : null}
+                    </View>
 
-                <TextInput
-                  value={reward.type}
-                  onChangeText={(value) => updateReward(index, "type", value)}
-                  style={[s.input, inputColors(theme.colors.surfaceAlt, theme.colors.text)]}
-                  placeholder="Type"
-                  placeholderTextColor={theme.colors.textMuted}
-                />
-              </>
-            ) : (
-              <View style={s.rewardRow}>
-                <Image source={imageSource} style={s.rewardImage} />
-                <View style={s.rewardTextWrap}>
-                  <Text style={[s.itemTitle, { color: theme.colors.text }]}>{reward.title}</Text>
-                  <Text style={{ color: theme.colors.textMuted }}>{reward.price} RP</Text>
-                  <Text style={{ color: theme.colors.textMuted }}>Type: {reward.type || "-"}</Text>
-                </View>
+                    <View style={s.itemFormActions}>
+                      <Pressable
+                        style={[s.itemActionButton, { backgroundColor: theme.colors.primary }]}
+                        onPress={handleSaveTaskChanges}
+                      >
+                        <Text style={s.itemActionText}>
+                          {editingTaskState?.isNew ? "Confirm" : "Save Changes"}
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[s.itemActionButton, { backgroundColor: theme.colors.surface }]}
+                        onPress={handleCancelTaskEdit}
+                      >
+                        <Text style={[s.itemSecondaryActionText, { color: theme.colors.text }]}>
+                          Cancel
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </>
+                ) : (
+                  <>
+                    <Text style={[s.itemTitle, { color: theme.colors.text }]}>{task.title}</Text>
+
+                    <View style={s.infoRow}>
+                      <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
+                        <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                          {task.type || "-"}
+                        </Text>
+                      </View>
+
+                      <View style={s.metricGroup}>
+                        <View style={s.metricItem}>
+                          <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                            {task.xp || "-"}
+                          </Text>
+                          <Image
+                            source={require("../../../../assets/icons/xp.png")}
+                            style={s.metricIcon}
+                          />
+                        </View>
+
+                        <View style={s.metricItem}>
+                          <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                            {task.rewardPoints || "-"}
+                          </Text>
+                          <Image
+                            source={require("../../../../assets/icons/reward_points.png")}
+                            style={s.metricIcon}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                {isEditingPackage && !isEditingTask && (
+                  <View style={s.itemActions}>
+                    <Pressable
+                      onPress={() => handleOpenTaskEdit(index)}
+                      style={s.iconButton}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={require("../../../../assets/button_icons/edit.png")}
+                        style={s.iconImage}
+                      />
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleDeleteTask(index)}
+                      style={s.iconButton}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={require("../../../../assets/button_icons/delete.png")}
+                        style={s.iconImage}
+                      />
+                    </Pressable>
+                  </View>
+                )}
               </View>
-            )}
+            );
+          })}
+        </View>
+
+        <View
+          style={[
+            s.sectionCard,
+            {
+              backgroundColor: theme.colors.surface,
+              borderColor: theme.colors.border,
+            },
+          ]}
+        >
+          <View style={s.sectionHeader}>
+            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Rewards</Text>
 
             {isEditingPackage && (
-              <View style={s.itemActionRow}>
-                <Pressable
-                  style={[s.secondaryButton, { borderColor: theme.colors.border }]}
-                  onPress={() =>
-                    setEditingRewardIndex(isEditingReward ? null : index)
-                  }
-                >
-                  <Text style={[s.secondaryButtonText, { color: theme.colors.text }]}>
-                    {isEditingReward ? "Done" : "Edit"}
-                  </Text>
-                </Pressable>
-
-                <Pressable
-                  style={[s.dangerOutlineButton, { borderColor: theme.colors.error }]}
-                  onPress={() => handleDeleteReward(index)}
-                >
-                  <Text style={[s.dangerOutlineText, { color: theme.colors.error }]}>Delete</Text>
-                </Pressable>
-              </View>
+              <Pressable
+                style={[s.addChip, { backgroundColor: theme.colors.primary }]}
+                onPress={addReward}
+              >
+                <Text style={s.addChipText}>+ Add Reward</Text>
+              </Pressable>
             )}
           </View>
-        );
-      })}
 
-      {isEditingPackage && (
-        <Pressable
-          style={[s.addButton, { borderColor: theme.colors.primary }]}
-          onPress={addReward}
-        >
-          <Text style={[s.addButtonText, { color: theme.colors.primary }]}>+ Add Reward</Text>
-        </Pressable>
-      )}
-    </ScrollView>
+          {draftPkg.rewards.map((reward, index) => {
+            const isEditingReward = editingRewardState?.index === index;
+            const rewardError = rewardErrors[index] ?? {};
+            const imageSource = getRewardImage(reward.type);
+
+            return (
+              <View
+                key={reward.id ?? `reward-${index}`}
+                style={[s.rewardCard, { backgroundColor: theme.colors.surfaceAlt }]}
+              >
+                {isEditingReward ? (
+                  <View style={s.editFormWrap}>
+                    <View>
+                      <TextInput
+                        value={reward.title}
+                        onChangeText={(value) => updateReward(index, "title", value)}
+                        style={[
+                          s.input,
+                          inputColors(theme.colors.surface, theme.colors.text),
+                          rewardError.title && { borderColor: theme.colors.error },
+                        ]}
+                        placeholder="Reward title"
+                        placeholderTextColor={
+                          rewardError.title ? theme.colors.error : theme.colors.textMuted
+                        }
+                      />
+                      {rewardError.title ? (
+                        <Text style={[s.errorText, { color: theme.colors.error }]}>
+                          {rewardError.title}
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    <View>
+                      <TextInput
+                        value={reward.price}
+                        onChangeText={(value) => updateReward(index, "price", value)}
+                        style={[
+                          s.input,
+                          inputColors(theme.colors.surface, theme.colors.text),
+                          rewardError.price && { borderColor: theme.colors.error },
+                        ]}
+                        placeholder={rewardError.price && !reward.price ? INTEGER_ERROR : "Price"}
+                        placeholderTextColor={
+                          rewardError.price ? theme.colors.error : theme.colors.textMuted
+                        }
+                        keyboardType="number-pad"
+                      />
+                      {rewardError.price && reward.price ? (
+                        <Text style={[s.errorText, { color: theme.colors.error }]}>
+                          {rewardError.price}
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    <View>
+                      <TextInput
+                        value={reward.type}
+                        onChangeText={(value) => updateReward(index, "type", value)}
+                        style={[
+                          s.input,
+                          inputColors(theme.colors.surface, theme.colors.text),
+                          rewardError.type && { borderColor: theme.colors.error },
+                        ]}
+                        placeholder="Type"
+                        placeholderTextColor={
+                          rewardError.type ? theme.colors.error : theme.colors.textMuted
+                        }
+                      />
+                      {rewardError.type ? (
+                        <Text style={[s.errorText, { color: theme.colors.error }]}>
+                          {rewardError.type}
+                        </Text>
+                      ) : null}
+                    </View>
+
+                    <View style={s.itemFormActions}>
+                      <Pressable
+                        style={[s.itemActionButton, { backgroundColor: theme.colors.primary }]}
+                        onPress={handleSaveRewardChanges}
+                      >
+                        <Text style={s.itemActionText}>
+                          {editingRewardState?.isNew ? "Confirm" : "Save Changes"}
+                        </Text>
+                      </Pressable>
+
+                      <Pressable
+                        style={[s.itemActionButton, { backgroundColor: theme.colors.surface }]}
+                        onPress={handleCancelRewardEdit}
+                      >
+                        <Text style={[s.itemSecondaryActionText, { color: theme.colors.text }]}>
+                          Cancel
+                        </Text>
+                      </Pressable>
+                    </View>
+                  </View>
+                ) : (
+                  <>
+                    <Image source={imageSource} style={s.rewardImage} />
+
+                    <View style={s.rewardTextWrap}>
+                      <Text style={[s.itemTitle, { color: theme.colors.text }]}>
+                        {reward.title}
+                      </Text>
+
+                      <View style={s.infoRow}>
+                        <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
+                          <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                            {reward.type || "-"}
+                          </Text>
+                        </View>
+
+                        <View style={s.metricItem}>
+                          <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                            {reward.price || "-"}
+                          </Text>
+                          <Image
+                            source={require("../../../../assets/icons/reward_points.png")}
+                            style={s.metricIcon}
+                          />
+                        </View>
+                      </View>
+                    </View>
+                  </>
+                )}
+
+                {isEditingPackage && !isEditingReward && (
+                  <View style={s.itemActions}>
+                    <Pressable
+                      onPress={() => handleOpenRewardEdit(index)}
+                      style={s.iconButton}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={require("../../../../assets/button_icons/edit.png")}
+                        style={s.iconImage}
+                      />
+                    </Pressable>
+
+                    <Pressable
+                      onPress={() => handleDeleteReward(index)}
+                      style={s.iconButton}
+                      hitSlop={8}
+                    >
+                      <Image
+                        source={require("../../../../assets/button_icons/delete.png")}
+                        style={s.iconImage}
+                      />
+                    </Pressable>
+                  </View>
+                )}
+              </View>
+            );
+          })}
+        </View>
+      </ScrollView>
+    </View>
   );
 }
 
@@ -508,116 +1201,262 @@ const inputColors = (backgroundColor: string, color: string) => ({
 });
 
 const s = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 16,
   },
-  card: {
-    borderRadius: 18,
-    padding: 16,
-    marginBottom: 16,
+  topBar: {
+    paddingTop: 56,
+    paddingBottom: 18,
+    paddingHorizontal: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    borderBottomWidth: 1,
   },
-  title: {
+  backButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  topBarText: {
+    flex: 1,
+  },
+  topBarTitle: {
     fontSize: 24,
     fontWeight: "800",
-    marginBottom: 8,
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 32,
+    gap: 16,
+  },
+  heroCard: {
+    borderRadius: 20,
+    padding: 18,
+    gap: 12,
+    borderWidth: 1,
+    position: "relative",
+  },
+  heroActions: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    flexDirection: "row",
+    gap: 8,
+    zIndex: 2,
+  },
+  heroTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    paddingRight: 72,
+  },
+  heroMeta: {
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  heroDescription: {
+    lineHeight: 21,
   },
   titleInput: {
     fontSize: 22,
-    fontWeight: "700",
-  },
-  meta: {
-    marginBottom: 8,
-  },
-  description: {
-    lineHeight: 22,
-  },
-  actionRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 16,
-  },
-  primaryButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  secondaryButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  dangerButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-  },
-  secondaryButtonText: {
-    fontWeight: "700",
-  },
-  dangerOutlineButton: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  dangerOutlineText: {
-    fontWeight: "700",
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "800",
-    marginBottom: 12,
-  },
-  itemTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 6,
-  },
-  itemActionRow: {
-    flexDirection: "row",
-    gap: 12,
-    marginTop: 14,
-  },
-  rewardRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  rewardImage: {
-    width: 52,
-    height: 52,
-  },
-  rewardTextWrap: {
-    flex: 1,
-  },
-  addButton: {
-    borderWidth: 1,
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  addButtonText: {
     fontWeight: "700",
   },
   input: {
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 12,
-    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "transparent",
+  },
+  selectField: {
+    minHeight: 48,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "transparent",
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  dropdown: {
+    borderRadius: 14,
+    borderWidth: 1,
+    marginTop: 8,
+    overflow: "hidden",
+  },
+  dropdownOption: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
   },
   multilineInput: {
     minHeight: 110,
     textAlignVertical: "top",
+  },
+  formActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 4,
+  },
+  primaryAction: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  primaryActionText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  secondaryAction: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  secondaryActionText: {
+    fontWeight: "700",
+  },
+  sectionCard: {
+    borderRadius: 18,
+    padding: 16,
+    gap: 12,
+    borderWidth: 1,
+  },
+  sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  addChip: {
+    borderRadius: 999,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+  },
+  addChipText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 12,
+    textTransform: "uppercase",
+  },
+  itemCard: {
+    borderRadius: 14,
+    padding: 14,
+    gap: 8,
+    position: "relative",
+  },
+  rewardCard: {
+    borderRadius: 14,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+    position: "relative",
+  },
+  editFormWrap: {
+    flex: 1,
+    gap: 10,
+  },
+  itemTitle: {
+    fontSize: 17,
+    fontWeight: "700",
+    paddingRight: 64,
+  },
+  rewardImage: {
+    width: 56,
+    height: 56,
+    resizeMode: "contain",
+    borderRadius: 16,
+  },
+  rewardTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  infoRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+    marginTop: 2,
+  },
+  typeBadge: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 999,
+  },
+  typeBadgeText: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  metricGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 14,
+  },
+  metricItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  metricValue: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  metricIcon: {
+    width: 18,
+    height: 18,
+    resizeMode: "contain",
+  },
+  itemActions: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    flexDirection: "row",
+    gap: 8,
+    zIndex: 2,
+  },
+  iconButton: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconImage: {
+    width: 22,
+    height: 22,
+    resizeMode: "contain",
+  },
+  itemFormActions: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 2,
+  },
+  itemActionButton: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  itemActionText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+  },
+  itemSecondaryActionText: {
+    fontWeight: "700",
+  },
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    fontWeight: "600",
   },
 });

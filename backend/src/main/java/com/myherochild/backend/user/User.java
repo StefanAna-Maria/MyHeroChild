@@ -1,9 +1,12 @@
 package com.myherochild.backend.user;
 
+import com.myherochild.backend.packages.Package;
 import jakarta.persistence.*;
 import lombok.*;
 
 import java.time.LocalDateTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 
 @Entity
 @Table(name = "users")
@@ -57,4 +60,13 @@ public class User {
     @Builder.Default
     @Column(nullable = false)
     private String avatar = "robot";
+
+    @Builder.Default
+    @ManyToMany
+    @JoinTable(
+            name = "parent_catalog_packages",
+            joinColumns = @JoinColumn(name = "parent_id"),
+            inverseJoinColumns = @JoinColumn(name = "package_id")
+    )
+    private Set<Package> catalogPackages = new LinkedHashSet<>();
 }

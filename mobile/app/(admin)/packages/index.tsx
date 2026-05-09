@@ -1,12 +1,29 @@
 import { useCallback, useState } from "react";
-import { Alert, View, Text, FlatList, Pressable, StyleSheet } from "react-native";
+import {
+  Alert,
+  FlatList,
+  Image,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { api } from "@/src/services/api";
 import { useTheme } from "@/src/context/ThemeContext";
 import AppHeader from "@/components/AppHeader";
 
+type PackageListItem = {
+  id: number;
+  title: string;
+  ageGroup: string;
+  description: string;
+  tasks: { id: number }[];
+  rewards: { id: number }[];
+};
+
 export default function Packages() {
-  const [packages, setPackages] = useState([]);
+  const [packages, setPackages] = useState<PackageListItem[]>([]);
   const router = useRouter();
   const theme = useTheme();
 
@@ -44,107 +61,177 @@ export default function Packages() {
   );
 
   return (
-    //<SafeAreaView style={{ flex: 1 }}>
+    <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
+      <AppHeader />
 
-      //<SafeAreaView style={{ flex: 1, backgroundColor: theme.colors.background }}>
-      <View style={{ flex: 1, backgroundColor: theme.colors.background }}>
+      <FlatList
+        data={packages}
+        keyExtractor={(item) => item.id.toString()}
+        contentContainerStyle={s.content}
+        renderItem={({ item }) => (
+          <Pressable
+            onPress={() => router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}`)}
+            style={[
+              s.card,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <View style={s.cardHeaderRow}>
+              <View style={s.cardTextWrap}>
+                <Text style={[s.title, { color: theme.colors.text }]}>{item.title}</Text>
+                <Text style={[s.metaText, { color: theme.colors.textMuted }]}>
+                  Age Group {item.ageGroup}
+                </Text>
+              </View>
 
-        <AppHeader />
-
-        <FlatList
-          data={packages}
-          keyExtractor={(item: any) => item.id.toString()}
-          contentContainerStyle={{ gap: 14 }}
-          renderItem={({ item }: any) => (
-            <Pressable
-              onPress={() => router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}`)}
-              style={[s.card, { backgroundColor: theme.colors.surface }]}
-            >
-              <Text style={[s.title, { color: theme.colors.text }]}>
-                {item.title}
-              </Text>
-
-              <Text style={{ color: theme.colors.textMuted }}>
-                Age: {item.ageGroup}
-              </Text>
-
-              <Text style={{ color: theme.colors.textMuted }}>
-                {item.description}
-              </Text>
-
-              <View style={s.actions}>
+              <View style={s.iconActions}>
                 <Pressable
-                  style={[s.editBtn, { backgroundColor: theme.colors.primary }]}
-                  onPress={() => router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}&edit=1`)}
+                  onPress={() =>
+                    router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}&edit=1`)
+                  }
+                  style={s.iconButton}
+                  hitSlop={8}
                 >
-                  <Text style={s.actionText}>Edit</Text>
+                  <Image
+                    source={require("../../../assets/button_icons/edit.png")}
+                    style={s.iconImage}
+                  />
                 </Pressable>
 
                 <Pressable
-                  style={[s.deleteBtn, { backgroundColor: theme.colors.error }]}
                   onPress={() => handleDeletePackage(item.id)}
+                  style={s.iconButton}
+                  hitSlop={8}
                 >
-                  <Text style={s.actionText}>Delete</Text>
+                  <Image
+                    source={require("../../../assets/button_icons/delete.png")}
+                    style={s.iconImage}
+                  />
                 </Pressable>
               </View>
-            </Pressable>
-          )}
-        />
+            </View>
 
-        <Pressable
-          style={[s.addBtn, { backgroundColor: theme.colors.primary }]}
-          onPress={() => router.push("/(admin)/packages/_screens/package-create")}
-        >
-          <Text style={s.addText}>+ Add New Package</Text>
-        </Pressable>
+            <Text
+              style={[s.description, { color: theme.colors.textMuted }]}
+              numberOfLines={3}
+            >
+              {item.description || "No description provided."}
+            </Text>
 
-      </View>
-    //</SafeAreaView>
+            <View style={s.metricsRow}>
+              <View style={[s.metricBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
+                <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                  {item.tasks.length}
+                </Text>
+                <Text style={[s.metricLabel, { color: theme.colors.textMuted }]}>Tasks</Text>
+              </View>
+
+              <View style={[s.metricBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
+                <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                  {item.rewards.length}
+                </Text>
+                <Text style={[s.metricLabel, { color: theme.colors.textMuted }]}>Rewards</Text>
+              </View>
+            </View>
+          </Pressable>
+        )}
+        ListFooterComponent={
+          <Pressable
+            style={[s.addBtn, { backgroundColor: theme.colors.primary }]}
+            onPress={() => router.push("/(admin)/packages/_screens/package-create")}
+          >
+            <Text style={s.addText}>+ Add New Package</Text>
+          </Pressable>
+        }
+      />
+    </View>
   );
 }
 
 const s = StyleSheet.create({
-  container: {
+  screen: {
     flex: 1,
-    padding: 16
+  },
+  content: {
+    padding: 16,
+    paddingBottom: 32,
+    gap: 14,
   },
   card: {
     padding: 16,
-    borderRadius: 16
+    borderRadius: 18,
+    borderWidth: 1,
+    gap: 12,
+  },
+  cardHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  cardTextWrap: {
+    flex: 1,
+    gap: 4,
   },
   title: {
-    fontSize: 18,
-    fontWeight: "700"
+    fontSize: 20,
+    fontWeight: "800",
+    paddingRight: 8,
   },
-  actions: {
+  metaText: {
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  description: {
+    lineHeight: 21,
+  },
+  metricsRow: {
     flexDirection: "row",
     gap: 10,
-    marginTop: 14,
   },
-  editBtn: {
+  metricBadge: {
     flex: 1,
+    borderRadius: 14,
     paddingVertical: 12,
-    borderRadius: 12,
     alignItems: "center",
+    gap: 2,
   },
-  deleteBtn: {
-    flex: 1,
-    paddingVertical: 12,
-    borderRadius: 12,
-    alignItems: "center",
+  metricValue: {
+    fontSize: 18,
+    fontWeight: "800",
   },
-  actionText: {
-    color: "white",
+  metricLabel: {
+    fontSize: 12,
     fontWeight: "700",
+    textTransform: "uppercase",
+  },
+  iconActions: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  iconButton: {
+    width: 28,
+    height: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  iconImage: {
+    width: 22,
+    height: 22,
+    resizeMode: "contain",
   },
   addBtn: {
-    marginTop: 16,
+    marginTop: 4,
     padding: 16,
     borderRadius: 14,
-    alignItems: "center"
+    alignItems: "center",
   },
   addText: {
     color: "white",
-    fontWeight: "700"
-  }
+    fontWeight: "700",
+  },
 });
