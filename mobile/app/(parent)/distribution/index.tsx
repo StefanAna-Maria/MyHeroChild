@@ -1,68 +1,60 @@
 import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../../components/AppHeader";
+import { avatars, AvatarType } from "../../../constants/avatars";
 import { api } from "../../../src/services/api";
 import { useTheme } from "../../../src/context/ThemeContext";
 
-const catalogueCards = [
-  {
-    key: "packages",
-    title: "Packages",
-    subtitle: "Browse saved admin packages by age group",
-    image: require("../../../assets/rewards/family.png"),
-  },
-  {
-    key: "my-tasks",
-    title: "My Tasks",
-    subtitle: "Your custom parent tasks will live here",
-    image: require("../../../assets/rewards/default.png"),
-  },
-  {
-    key: "my-rewards",
-    title: "My Rewards",
-    subtitle: "Your custom parent rewards will live here",
-    image: require("../../../assets/rewards/mystery.png"),
-  },
-] as const;
+type DistributionChild = {
+  id: number;
+  username: string;
+  avatar: AvatarType;
+  level: number;
+  assignedTasksCount: number;
+  availableRewardsCount: number;
+};
 
 export default function DistributionIndex() {
   const router = useRouter();
   const theme = useTheme();
-  const [packageCount, setPackageCount] = useState(0);
-  const [taskCount, setTaskCount] = useState(0);
-  const [rewardCount, setRewardCount] = useState(0);
+  const [children, setChildren] = useState<DistributionChild[]>([]);
+  const [onlyToday, setOnlyToday] = useState(true);
 
-  const fetchCatalogueCount = useCallback(async () => {
-    const [packagesRes, tasksRes, rewardsRes] = await Promise.all([
-      api.get("/parent/catalog/packages"),
-      api.get("/parent/catalog/tasks"),
-      api.get("/parent/catalog/rewards"),
-    ]);
-
-    setPackageCount(packagesRes.data.data.length);
-    setTaskCount(tasksRes.data.data.length);
-    setRewardCount(rewardsRes.data.data.length);
-  }, []);
+  const fetchChildren = useCallback(async () => {
+    const response = await api.get("/parent/distribution/children", {
+      params: { onlyToday },
+    });
+    setChildren(response.data.data);
+  }, [onlyToday]);
 
   useFocusEffect(
     useCallback(() => {
-      fetchCatalogueCount();
-    }, [fetchCatalogueCount])
+      fetchChildren();
+    }, [fetchChildren])
   );
 
-  const handlePress = (key: string) => {
-    if (key === "packages") {
-      router.push("/(parent)/distribution/_screens/packages-age-groups");
-      return;
-    }
+  const openSelectionFlow = (child: DistributionChild, mode: "tasks" | "rewards") => {
+    router.push({
+      pathname: "/(parent)/distribution/_screens/assign-items",
+      params: {
+        childId: String(child.id),
+        mode,
+        childName: child.username,
+      },
+    });
+  };
 
-    if (key === "my-tasks") {
-      router.push("/(parent)/distribution/_screens/my-tasks");
-      return;
-    }
-
-    router.push("/(parent)/distribution/_screens/my-rewards");
+  const openChildItems = (child: DistributionChild, mode: "tasks" | "rewards") => {
+    router.push({
+      pathname: "/(parent)/distribution/_screens/child-items",
+      params: {
+        childId: String(child.id),
+        mode,
+        childName: child.username,
+      },
+    });
   };
 
   return (
@@ -70,53 +62,95 @@ export default function DistributionIndex() {
       <AppHeader />
 
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={[s.pageTitle, { color: theme.colors.text }]}>My Catalogue</Text>
+        <Text style={[s.pageTitle, { color: theme.colors.text }]}>Distribute</Text>
         <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
-          Open one of the catalogue sections to continue browsing.
+          Select one of your children to assign tasks or activate rewards from your catalogue.
         </Text>
 
-        {catalogueCards.map((card) => {
-          const count =
-            card.key === "packages"
-              ? packageCount
-              : card.key === "my-tasks"
-                ? taskCount
-                : rewardCount;
+        <Pressable style={s.checkboxRow} onPress={() => setOnlyToday((current) => !current)}>
+          <Ionicons
+            name={onlyToday ? "checkbox" : "square-outline"}
+            size={22}
+            color={theme.colors.tabIconActive}
+          />
+          <Text style={[s.checkboxLabel, { color: theme.colors.text }]}>Only Today&apos;s</Text>
+        </Pressable>
 
-          return (
-            <Pressable
-              key={card.key}
+        {children.length === 0 ? (
+          <View
+            style={[
+              s.emptyCard,
+              {
+                backgroundColor: theme.colors.primary,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <Text style={{ color: theme.colors.textMuted }}>
+              No children are linked to this parent account yet.
+            </Text>
+          </View>
+        ) : (
+          children.map((child) => (
+            <View
+              key={child.id}
               style={[
-                s.card,
+                s.childCard,
                 {
                   backgroundColor: theme.colors.primary,
                   borderColor: theme.colors.border,
                 },
               ]}
-              onPress={() => handlePress(card.key)}
             >
-              <Image source={card.image} style={s.cardImage} />
+              <View style={s.childTopRow}>
+                <Image source={avatars[child.avatar] ?? avatars.robot} style={s.avatar} />
 
-              <View style={s.cardTextWrap}>
-                <Text style={[s.cardTitle, { color: theme.colors.text }]}>
-                  {card.title}
-                </Text>
-                <Text style={{ color: theme.colors.textMuted }}>{card.subtitle}</Text>
+                <View style={s.childInfo}>
+                  <Text style={[s.childName, { color: theme.colors.text }]}>{child.username}</Text>
+                  <Text style={{ color: theme.colors.textMuted }}>Level {child.level}</Text>
+                </View>
               </View>
 
-              <View
-                style={[
-                  s.countBadge,
-                  {
-                    backgroundColor: theme.colors.tabIconActive,
-                  },
-                ]}
-              >
-                <Text style={s.countText}>{count}</Text>
+              <View style={s.metricsRow}>
+                <Pressable
+                  style={[s.metricCard, { backgroundColor: theme.colors.surfaceAlt }]}
+                  onPress={() => openChildItems(child, "tasks")}
+                >
+                  <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                    {child.assignedTasksCount}
+                  </Text>
+                  <Text style={{ color: theme.colors.textMuted }}>Assigned Tasks</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[s.metricCard, { backgroundColor: theme.colors.surfaceAlt }]}
+                  onPress={() => openChildItems(child, "rewards")}
+                >
+                  <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                    {child.availableRewardsCount}
+                  </Text>
+                  <Text style={{ color: theme.colors.textMuted }}>Available Rewards</Text>
+                </Pressable>
               </View>
-            </Pressable>
-          );
-        })}
+
+              <View style={s.actionsRow}>
+                <Pressable
+                  style={[s.actionButton, { backgroundColor: theme.colors.tabIconActive }]}
+                  onPress={() => openSelectionFlow(child, "tasks")}
+                >
+                  <Text style={s.actionButtonText}>Assign Tasks</Text>
+                </Pressable>
+
+                <Pressable
+                  style={[s.actionButton, { backgroundColor: theme.colors.accent }]}
+                  onPress={() => openSelectionFlow(child, "rewards")}
+                >
+                  <Text style={s.actionButtonText}>Activate Rewards</Text>
+                </Pressable>
+              </View>
+            </View>
+          ))
+        )}
       </ScrollView>
     </View>
   );
@@ -140,11 +174,24 @@ const s = StyleSheet.create({
     marginBottom: 10,
     lineHeight: 20,
   },
-  card: {
-    borderRadius: 22,
-    padding: 16,
+  checkboxRow: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 10,
+    marginBottom: 4,
+  },
+  checkboxLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  emptyCard: {
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+  },
+  childCard: {
+    borderRadius: 22,
+    padding: 16,
     gap: 14,
     borderWidth: 1,
     shadowColor: "#8F7AD8",
@@ -153,28 +200,51 @@ const s = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
     elevation: 3,
   },
-  cardImage: {
-    width: 72,
-    height: 72,
-    resizeMode: "contain",
+  childTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
-  cardTextWrap: {
+  avatar: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+  },
+  childInfo: {
     flex: 1,
     gap: 4,
   },
-  cardTitle: {
+  childName: {
     fontSize: 20,
     fontWeight: "800",
   },
-  countBadge: {
-    minWidth: 44,
-    height: 44,
-    borderRadius: 22,
+  metricsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  metricCard: {
+    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    gap: 2,
+  },
+  metricValue: {
+    fontSize: 20,
+    fontWeight: "800",
+  },
+  actionsRow: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  actionButton: {
+    flex: 1,
+    borderRadius: 14,
+    paddingVertical: 13,
     alignItems: "center",
     justifyContent: "center",
-    paddingHorizontal: 10,
   },
-  countText: {
+  actionButtonText: {
     color: "#FFFFFF",
     fontWeight: "800",
     fontSize: 16,

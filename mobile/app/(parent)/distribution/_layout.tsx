@@ -4,11 +4,8 @@ export default function DistributionLayout() {
   return (
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="index" />
-      <Stack.Screen name="_screens/packages-age-groups" />
-      <Stack.Screen name="_screens/package-category" />
-      <Stack.Screen name="_screens/package-detail" />
-      <Stack.Screen name="_screens/my-tasks" />
-      <Stack.Screen name="_screens/my-rewards" />
+      <Stack.Screen name="_screens/assign-items" />
+      <Stack.Screen name="_screens/child-items" />
     </Stack>
   );
 }

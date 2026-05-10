@@ -1,6 +1,7 @@
 package com.myherochild.backend.parent;
 
 import com.myherochild.backend.common.exception.BusinessException;
+import com.myherochild.backend.parent.dto.ClaimedRewardSummaryResponse;
 import com.myherochild.backend.parent.dto.ParentChildSummaryResponse;
 import com.myherochild.backend.parent.dto.ParentProfileResponse;
 import com.myherochild.backend.security.JwtService;
@@ -22,9 +23,12 @@ public class ParentProfileService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final ParentAssignedTaskRepository parentAssignedTaskRepository;
+    private final ParentAssignedRewardRepository parentAssignedRewardRepository;
 
     public ParentProfileResponse getProfile(String username) {
         User parent = getParent(username);
+        java.time.LocalDate today = java.time.LocalDate.now();
 
         List<ParentChildSummaryResponse> children = userRepository
                 .findAllByParentIdAndRoleOrderByUsernameAsc(parent.getId(), UserRole.CHILD)
@@ -33,8 +37,32 @@ public class ParentProfileService {
                         .id(child.getId())
                         .username(child.getUsername())
                         .avatar(child.getAvatar())
-                        // The active task distribution flow is not persisted yet.
-                        .activeTasksCount(0)
+                        .level(child.getLevel())
+                        .activeTasksCount((int) parentAssignedTaskRepository
+                                .countByChildIdAndCompletedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                                        child.getId(),
+                                        today,
+                                        today
+                                ))
+                        .availableRewardsCount((int) parentAssignedRewardRepository
+                                .countByChildIdAndClaimedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                                        child.getId(),
+                                        today,
+                                        today
+                                ))
+                        .build())
+                .toList();
+
+        List<ClaimedRewardSummaryResponse> claimedRewards = parentAssignedRewardRepository
+                .findAllByParentIdAndClaimedTrueOrderByClaimedAtDesc(parent.getId())
+                .stream()
+                .map(reward -> ClaimedRewardSummaryResponse.builder()
+                        .id(reward.getId())
+                        .title(reward.getTitle())
+                        .type(reward.getType())
+                        .price(reward.getPrice())
+                        .childName(reward.getChild().getUsername())
+                        .childAvatar(reward.getChild().getAvatar())
                         .build())
                 .toList();
 
@@ -43,7 +71,7 @@ public class ParentProfileService {
                 .email(parent.getEmail())
                 .avatar(parent.getAvatar())
                 .children(children)
-                .claimedRewards(Collections.emptyList())
+                .claimedRewards(claimedRewards)
                 .build();
     }
 

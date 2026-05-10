@@ -7,11 +7,11 @@ import lombok.Data;
 @Data
 @Builder
 @AllArgsConstructor
-public class ParentChildSummaryResponse {
+public class ParentDistributionChildResponse {
     private Long id;
     private String username;
     private String avatar;
     private int level;
-    private int activeTasksCount;
-    private int availableRewardsCount;
+    private long assignedTasksCount;
+    private long availableRewardsCount;
 }
