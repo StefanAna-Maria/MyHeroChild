@@ -1,6 +1,8 @@
 package com.myherochild.backend.parent;
 
 import com.myherochild.backend.common.exception.BusinessException;
+import com.myherochild.backend.level.LevelProgress;
+import com.myherochild.backend.level.UserLevelService;
 import com.myherochild.backend.parent.dto.ClaimedRewardSummaryResponse;
 import com.myherochild.backend.parent.dto.ParentChildSummaryResponse;
 import com.myherochild.backend.parent.dto.ParentProfileResponse;
@@ -23,6 +25,7 @@ public class ParentProfileService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final UserLevelService userLevelService;
     private final ParentAssignedTaskRepository parentAssignedTaskRepository;
     private final ParentAssignedRewardRepository parentAssignedRewardRepository;
 
@@ -33,6 +36,7 @@ public class ParentProfileService {
         List<ParentChildSummaryResponse> children = userRepository
                 .findAllByParentIdAndRoleOrderByUsernameAsc(parent.getId(), UserRole.CHILD)
                 .stream()
+                .map(userLevelService::syncLevel)
                 .map(child -> ParentChildSummaryResponse.builder()
                         .id(child.getId())
                         .username(child.getUsername())
@@ -132,14 +136,19 @@ public class ParentProfileService {
     }
 
     private UserMeResponse mapUserMeResponse(User user) {
+        User syncedUser = userLevelService.syncLevel(user);
+        LevelProgress progress = userLevelService.resolveProgress(syncedUser.getXp());
+
         return UserMeResponse.builder()
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .level(user.getLevel())
-                .xp(user.getXp())
-                .rewardPoints(user.getRewardPoints())
-                .avatar(user.getAvatar())
+                .username(syncedUser.getUsername())
+                .email(syncedUser.getEmail())
+                .role(syncedUser.getRole())
+                .level(syncedUser.getLevel())
+                .xp(syncedUser.getXp())
+                .currentLevelMinTotalXp(progress.getCurrentLevelMinTotalXp())
+                .nextLevelMinTotalXp(progress.getNextLevelMinTotalXp())
+                .rewardPoints(syncedUser.getRewardPoints())
+                .avatar(syncedUser.getAvatar())
                 .build();
     }
 }

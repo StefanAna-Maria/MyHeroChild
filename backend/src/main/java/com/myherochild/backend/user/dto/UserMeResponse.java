@@ -15,6 +15,8 @@ public class UserMeResponse {
     private UserRole role;
     private int level;
     private int xp;
+    private int currentLevelMinTotalXp;
+    private Integer nextLevelMinTotalXp;
     private int rewardPoints;
     private String avatar;
 }

@@ -15,5 +15,13 @@ public interface ParentAssignedRewardRepository extends JpaRepository<ParentAssi
 
     List<ParentAssignedReward> findAllByChildIdAndClaimedFalseOrderByStartDateAscEndDateAscTitleAsc(Long childId);
 
+    List<ParentAssignedReward> findAllByChildIdAndClaimedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByEndDateAscTitleAsc(
+            Long childId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate
+    );
+
+    List<ParentAssignedReward> findAllByChildIdAndClaimedTrueOrderByClaimedAtDescCreatedAtDesc(Long childId);
+
     List<ParentAssignedReward> findAllByParentIdAndClaimedTrueOrderByClaimedAtDesc(Long parentId);
 }

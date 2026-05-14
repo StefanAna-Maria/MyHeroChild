@@ -49,6 +49,13 @@ public class ParentAssignedTask {
     @Column(nullable = false)
     private boolean completed = false;
 
+    @Builder.Default
+    @Column(name = "completion_requested", nullable = false)
+    private boolean completionRequested = false;
+
+    @Column(name = "completion_requested_at")
+    private LocalDateTime completionRequestedAt;
+
     @Column(name = "source_kind", nullable = false)
     private String sourceKind;
 

@@ -9,8 +9,10 @@ type User = {
   role: "ADMIN" | "PARENT" | "CHILD";
   level: number;
   xp: number;
+  currentLevelMinTotalXp: number;
+  nextLevelMinTotalXp?: number | null;
   rewardPoints: number;
-    avatar: AvatarType;
+  avatar: AvatarType;
 };
 
 type UserContextType = {
