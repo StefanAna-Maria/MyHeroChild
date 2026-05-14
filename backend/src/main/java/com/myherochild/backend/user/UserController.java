@@ -1,6 +1,8 @@
 package com.myherochild.backend.user;
 
 import com.myherochild.backend.common.dto.ApiResponse;
+import com.myherochild.backend.level.LevelProgress;
+import com.myherochild.backend.level.UserLevelService;
 import com.myherochild.backend.parent.ParentProfileService;
 import com.myherochild.backend.user.dto.UpdateUserProfileRequest;
 import com.myherochild.backend.user.dto.UpdateUserProfileResponse;
@@ -18,6 +20,7 @@ public class UserController {
 
     private final UserRepository userRepository;
     private final ParentProfileService parentProfileService;
+    private final UserLevelService userLevelService;
 
     // GET CURRENT USER (folosit de frontend pentru header)
     @GetMapping("/me")
@@ -28,14 +31,19 @@ public class UserController {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
+        User syncedUser = userLevelService.syncLevel(user);
+        LevelProgress progress = userLevelService.resolveProgress(syncedUser.getXp());
+
         UserMeResponse response = UserMeResponse.builder()
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .level(user.getLevel())
-                .xp(user.getXp())
-                .rewardPoints(user.getRewardPoints())
-                .avatar(user.getAvatar())
+                .username(syncedUser.getUsername())
+                .email(syncedUser.getEmail())
+                .role(syncedUser.getRole())
+                .level(syncedUser.getLevel())
+                .xp(syncedUser.getXp())
+                .currentLevelMinTotalXp(progress.getCurrentLevelMinTotalXp())
+                .nextLevelMinTotalXp(progress.getNextLevelMinTotalXp())
+                .rewardPoints(syncedUser.getRewardPoints())
+                .avatar(syncedUser.getAvatar())
                 .build();
 
         return ApiResponse.success("User fetched successfully", response);

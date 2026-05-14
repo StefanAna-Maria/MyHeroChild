@@ -1,6 +1,9 @@
 package com.myherochild.backend.parent;
 
 import com.myherochild.backend.common.exception.BusinessException;
+import com.myherochild.backend.level.LevelProgress;
+import com.myherochild.backend.level.UserLevelService;
+import com.myherochild.backend.parent.dto.ClaimedRewardSummaryResponse;
 import com.myherochild.backend.parent.dto.ParentChildSummaryResponse;
 import com.myherochild.backend.parent.dto.ParentProfileResponse;
 import com.myherochild.backend.security.JwtService;
@@ -22,19 +25,48 @@ public class ParentProfileService {
 
     private final UserRepository userRepository;
     private final JwtService jwtService;
+    private final UserLevelService userLevelService;
+    private final ParentAssignedTaskRepository parentAssignedTaskRepository;
+    private final ParentAssignedRewardRepository parentAssignedRewardRepository;
 
     public ParentProfileResponse getProfile(String username) {
         User parent = getParent(username);
+        java.time.LocalDate today = java.time.LocalDate.now();
 
         List<ParentChildSummaryResponse> children = userRepository
                 .findAllByParentIdAndRoleOrderByUsernameAsc(parent.getId(), UserRole.CHILD)
                 .stream()
+                .map(userLevelService::syncLevel)
                 .map(child -> ParentChildSummaryResponse.builder()
                         .id(child.getId())
                         .username(child.getUsername())
                         .avatar(child.getAvatar())
-                        // The active task distribution flow is not persisted yet.
-                        .activeTasksCount(0)
+                        .level(child.getLevel())
+                        .activeTasksCount((int) parentAssignedTaskRepository
+                                .countByChildIdAndCompletedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                                        child.getId(),
+                                        today,
+                                        today
+                                ))
+                        .availableRewardsCount((int) parentAssignedRewardRepository
+                                .countByChildIdAndClaimedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                                        child.getId(),
+                                        today,
+                                        today
+                                ))
+                        .build())
+                .toList();
+
+        List<ClaimedRewardSummaryResponse> claimedRewards = parentAssignedRewardRepository
+                .findAllByParentIdAndClaimedTrueOrderByClaimedAtDesc(parent.getId())
+                .stream()
+                .map(reward -> ClaimedRewardSummaryResponse.builder()
+                        .id(reward.getId())
+                        .title(reward.getTitle())
+                        .type(reward.getType())
+                        .price(reward.getPrice())
+                        .childName(reward.getChild().getUsername())
+                        .childAvatar(reward.getChild().getAvatar())
                         .build())
                 .toList();
 
@@ -43,7 +75,7 @@ public class ParentProfileService {
                 .email(parent.getEmail())
                 .avatar(parent.getAvatar())
                 .children(children)
-                .claimedRewards(Collections.emptyList())
+                .claimedRewards(claimedRewards)
                 .build();
     }
 
@@ -104,14 +136,19 @@ public class ParentProfileService {
     }
 
     private UserMeResponse mapUserMeResponse(User user) {
+        User syncedUser = userLevelService.syncLevel(user);
+        LevelProgress progress = userLevelService.resolveProgress(syncedUser.getXp());
+
         return UserMeResponse.builder()
-                .username(user.getUsername())
-                .email(user.getEmail())
-                .role(user.getRole())
-                .level(user.getLevel())
-                .xp(user.getXp())
-                .rewardPoints(user.getRewardPoints())
-                .avatar(user.getAvatar())
+                .username(syncedUser.getUsername())
+                .email(syncedUser.getEmail())
+                .role(syncedUser.getRole())
+                .level(syncedUser.getLevel())
+                .xp(syncedUser.getXp())
+                .currentLevelMinTotalXp(progress.getCurrentLevelMinTotalXp())
+                .nextLevelMinTotalXp(progress.getNextLevelMinTotalXp())
+                .rewardPoints(syncedUser.getRewardPoints())
+                .avatar(syncedUser.getAvatar())
                 .build();
     }
 }

@@ -1,8 +1,11 @@
-import { View, Text, StyleSheet, Animated, Image, Pressable } from "react-native";
+import { View, Text, StyleSheet, Animated, Image, Pressable, Alert } from "react-native";
 import { useEffect, useRef, useState } from "react";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 import { useTheme } from "../src/context/ThemeContext";
 import { useUser } from "../src/context/UserContext";
+import { useAuth } from "../src/auth/AuthContext";
 import { avatars, AvatarType } from "../constants/avatars";
 import AvatarPicker from "./AvatarPicker";
 import { api } from "../src/services/api";
@@ -11,28 +14,54 @@ export default function AppHeader() {
 
   const theme = useTheme();
   const { user, refreshUser } = useUser();
+  const { logout } = useAuth();
+  const router = useRouter();
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
 
   const xp = user?.xp ?? 0;
-  const xpNeeded = 100;
+  const currentLevelMinTotalXp = user?.currentLevelMinTotalXp ?? 0;
+  const nextLevelMinTotalXp = user?.nextLevelMinTotalXp ?? null;
+  const xpIntoCurrentLevel = Math.max(xp - currentLevelMinTotalXp, 0);
+  const xpNeededForNextLevel =
+    nextLevelMinTotalXp == null ? 0 : Math.max(nextLevelMinTotalXp - currentLevelMinTotalXp, 1);
 
   const openAvatarSelector = () => {
     console.log("Open avatar selector");
     setAvatarPickerVisible(true);
   };
 
+  const openLogout = () => {
+    Alert.alert("Log out", "Do you want to log out of your account?", [
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+      {
+        text: "Log out",
+        style: "destructive",
+        onPress: async () => {
+          await logout();
+          router.replace("/(auth)/login");
+        },
+      },
+    ]);
+  };
+
   useEffect(() => {
 
-    const progress = xp / xpNeeded;
+    const progress =
+      nextLevelMinTotalXp == null
+        ? 1
+        : Math.min(xpIntoCurrentLevel / xpNeededForNextLevel, 1);
 
     Animated.spring(progressAnim, {
       toValue: progress,
       useNativeDriver: false
     }).start();
 
-  }, [progressAnim, xp]);
+  }, [nextLevelMinTotalXp, progressAnim, xpIntoCurrentLevel, xpNeededForNextLevel]);
 
   if (!user) return null;
 
@@ -47,16 +76,47 @@ export default function AppHeader() {
     <View style={[s.container, { backgroundColor: theme.colors.surface }]}>
 
         <View style={s.topRow}>
+          {(role === "PARENT" || role === "CHILD") ? (
+            <Pressable
+              onPress={openLogout}
+              style={[s.logoutButton, { backgroundColor: theme.colors.surfaceAlt }]}
+            >
+              <Ionicons name="log-out-outline" size={20} color={theme.colors.text} />
+            </Pressable>
+          ) : null}
+
+          {role === "CHILD" ? (
+            <View
+              style={[
+                s.rewardPointsBadge,
+                {
+                  backgroundColor: theme.colors.surfaceAlt,
+                  right: role === "CHILD" ? 46 : 0,
+                },
+              ]}
+            >
+              <Image
+                source={require("../assets/icons/reward_points.png")}
+                style={s.rewardPointsIcon}
+              />
+              <Text style={[s.rewardPointsText, { color: theme.colors.text }]}>
+                {user.rewardPoints}
+              </Text>
+            </View>
+          ) : null}
+
+          <View style={s.identityRow}>
             <Pressable onPress={openAvatarSelector}>
-            <Image
+              <Image
                 source={avatars[user.avatar as AvatarType]}
                 style={s.avatar}
-            />
+              />
             </Pressable>
 
             <Text style={[s.username, { color: theme.colors.text }]}>
-            {username}
+              {username}
             </Text>
+          </View>
         </View>
 
       {role === "CHILD" && (
@@ -79,11 +139,12 @@ export default function AppHeader() {
               ]}
             />
 
+            <Text style={s.progressTextInside}>
+              {nextLevelMinTotalXp == null
+                ? `${xp} XP`
+                : `${xpIntoCurrentLevel}/${xpNeededForNextLevel} XP`}
+            </Text>
           </View>
-
-          <Text style={[s.xpText, { color: theme.colors.textMuted }]}>
-            {xp}/{xpNeeded} XP
-          </Text>
 
         </View>
 
@@ -118,9 +179,15 @@ const s = StyleSheet.create({
   },
 
   topRow: {
+    position: "relative",
+    minHeight: 42,
+    justifyContent: "center",
+  },
+
+  identityRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10
+    gap: 10,
   },
 
   avatar: {
@@ -144,10 +211,11 @@ const s = StyleSheet.create({
   },
 
   progressBarContainer: {
-    height: 12,
+    height: 18,
     borderRadius: 10,
     backgroundColor: "#E6F2EA",
-    overflow: "hidden"
+    overflow: "hidden",
+    justifyContent: "center",
   },
 
   progressBar: {
@@ -155,10 +223,47 @@ const s = StyleSheet.create({
     borderRadius: 10
   },
 
-  xpText: {
-    marginTop: 4,
+  progressTextInside: {
     fontSize: 12,
-    textAlign: "center"
-  }
+    textAlign: "center",
+    color: "#FFFFFF",
+    fontWeight: "800",
+    position: "absolute",
+    width: "100%",
+  },
+
+  rewardPointsBadge: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+
+  rewardPointsIcon: {
+    width: 18,
+    height: 18,
+    resizeMode: "contain",
+  },
+
+  rewardPointsText: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+
+  logoutButton: {
+    position: "absolute",
+    right: 0,
+    top: 0,
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: "center",
+    justifyContent: "center",
+  },
 
 });
