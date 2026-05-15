@@ -1,5 +1,7 @@
 package com.myherochild.backend.parent;
 
+import com.myherochild.backend.common.model.RewardType;
+import com.myherochild.backend.common.model.RewardTypeConverter;
 import com.myherochild.backend.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -34,7 +36,9 @@ public class ParentAssignedReward {
     @Column(nullable = false)
     private int price;
 
-    private String type;
+    @Convert(converter = RewardTypeConverter.class)
+    @Column(nullable = false, columnDefinition = "reward_type")
+    private RewardType type;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;

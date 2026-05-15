@@ -1,5 +1,7 @@
 package com.myherochild.backend.parent;
 
+import com.myherochild.backend.common.model.TaskType;
+import com.myherochild.backend.common.model.TaskTypeConverter;
 import com.myherochild.backend.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -26,7 +28,9 @@ public class ParentCustomTask {
     @Column(name = "reward_points", nullable = false)
     private int rewardPoints;
 
-    private String type;
+    @Convert(converter = TaskTypeConverter.class)
+    @Column(nullable = false, columnDefinition = "task_type")
+    private TaskType type;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)
     @JoinColumn(name = "parent_id", nullable = false)

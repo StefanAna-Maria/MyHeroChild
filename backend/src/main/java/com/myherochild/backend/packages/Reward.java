@@ -1,5 +1,7 @@
 package com.myherochild.backend.packages;
 
+import com.myherochild.backend.common.model.RewardType;
+import com.myherochild.backend.common.model.RewardTypeConverter;
 import jakarta.persistence.*;
 import lombok.*;
 
@@ -16,7 +18,9 @@ public class Reward {
 
     private int price;
 
-    private String type;
+    @Convert(converter = RewardTypeConverter.class)
+    @Column(nullable = false, columnDefinition = "reward_type")
+    private RewardType type;
 
     //private String image;
 

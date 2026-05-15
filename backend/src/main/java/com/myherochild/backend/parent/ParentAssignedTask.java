@@ -1,5 +1,7 @@
 package com.myherochild.backend.parent;
 
+import com.myherochild.backend.common.model.TaskType;
+import com.myherochild.backend.common.model.TaskTypeConverter;
 import com.myherochild.backend.user.User;
 import jakarta.persistence.*;
 import lombok.*;
@@ -37,7 +39,9 @@ public class ParentAssignedTask {
     @Column(name = "reward_points", nullable = false)
     private int rewardPoints;
 
-    private String type;
+    @Convert(converter = TaskTypeConverter.class)
+    @Column(nullable = false, columnDefinition = "task_type")
+    private TaskType type;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;

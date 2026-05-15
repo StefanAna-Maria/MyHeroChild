@@ -63,7 +63,7 @@ public class ParentProfileService {
                 .map(reward -> ClaimedRewardSummaryResponse.builder()
                         .id(reward.getId())
                         .title(reward.getTitle())
-                        .type(reward.getType())
+                        .type(reward.getType().getValue())
                         .price(reward.getPrice())
                         .childName(reward.getChild().getUsername())
                         .childAvatar(reward.getChild().getAvatar())

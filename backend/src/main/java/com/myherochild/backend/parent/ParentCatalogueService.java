@@ -1,5 +1,7 @@
 package com.myherochild.backend.parent;
 
+import com.myherochild.backend.common.model.RewardType;
+import com.myherochild.backend.common.model.TaskType;
 import com.myherochild.backend.packages.Package;
 import com.myherochild.backend.packages.PackageRepository;
 import com.myherochild.backend.packages.PackageService;
@@ -56,7 +58,7 @@ public class ParentCatalogueService {
                         .title(task.getTitle())
                         .xp(task.getXp())
                         .rewardPoints(task.getRewardPoints())
-                        .type(task.getType())
+                        .type(task.getType().getValue())
                         .build())
                 .toList();
     }
@@ -68,7 +70,7 @@ public class ParentCatalogueService {
                 .title(request.getTitle())
                 .xp(request.getXp())
                 .rewardPoints(request.getRewardPoints())
-                .type(request.getType())
+                .type(request.getType() == null ? TaskType.DEFAULT : request.getType())
                 .parent(parent)
                 .build();
 
@@ -83,7 +85,7 @@ public class ParentCatalogueService {
         task.setTitle(request.getTitle());
         task.setXp(request.getXp());
         task.setRewardPoints(request.getRewardPoints());
-        task.setType(request.getType());
+        task.setType(request.getType() == null ? TaskType.DEFAULT : request.getType());
 
         return mapTaskResponse(parentCustomTaskRepository.save(task));
     }
@@ -104,7 +106,7 @@ public class ParentCatalogueService {
                         .id(reward.getId())
                         .title(reward.getTitle())
                         .price(reward.getPrice())
-                        .type(reward.getType())
+                        .type(reward.getType().getValue())
                         .build())
                 .toList();
     }
@@ -115,7 +117,7 @@ public class ParentCatalogueService {
         ParentCustomReward reward = ParentCustomReward.builder()
                 .title(request.getTitle())
                 .price(request.getPrice())
-                .type(request.getType())
+                .type(request.getType() == null ? RewardType.DEFAULT : request.getType())
                 .parent(parent)
                 .build();
 
@@ -133,7 +135,7 @@ public class ParentCatalogueService {
 
         reward.setTitle(request.getTitle());
         reward.setPrice(request.getPrice());
-        reward.setType(request.getType());
+        reward.setType(request.getType() == null ? RewardType.DEFAULT : request.getType());
 
         return mapRewardResponse(parentCustomRewardRepository.save(reward));
     }
@@ -174,7 +176,7 @@ public class ParentCatalogueService {
                 .title(task.getTitle())
                 .xp(task.getXp())
                 .rewardPoints(task.getRewardPoints())
-                .type(task.getType())
+                .type(task.getType().getValue())
                 .build();
     }
 
@@ -183,7 +185,7 @@ public class ParentCatalogueService {
                 .id(reward.getId())
                 .title(reward.getTitle())
                 .price(reward.getPrice())
-                .type(reward.getType())
+                .type(reward.getType().getValue())
                 .build();
     }
 }
