@@ -3,6 +3,7 @@ package com.myherochild.backend.packages;
 import com.myherochild.backend.common.model.RewardType;
 import com.myherochild.backend.common.model.RewardTypeConverter;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import lombok.*;
 
 @Entity
@@ -20,6 +21,7 @@ public class Reward {
 
     @Convert(converter = RewardTypeConverter.class)
     @Column(nullable = false, columnDefinition = "reward_type")
+    @ColumnTransformer(write = "?::reward_type")
     private RewardType type;
 
     //private String image;

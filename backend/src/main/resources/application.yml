@@ -16,6 +16,7 @@ spring:
 
   flyway:
     enabled: true
+    ignore-migration-patterns: "*:missing"
 
 logging:
   level:

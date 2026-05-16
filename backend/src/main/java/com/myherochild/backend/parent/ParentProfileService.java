@@ -28,10 +28,12 @@ public class ParentProfileService {
     private final UserLevelService userLevelService;
     private final ParentAssignedTaskRepository parentAssignedTaskRepository;
     private final ParentAssignedRewardRepository parentAssignedRewardRepository;
+    private final ParentAssignedTaskStatusService parentAssignedTaskStatusService;
 
     public ParentProfileResponse getProfile(String username) {
         User parent = getParent(username);
         java.time.LocalDate today = java.time.LocalDate.now();
+        parentAssignedTaskStatusService.syncExpiredTasks();
 
         List<ParentChildSummaryResponse> children = userRepository
                 .findAllByParentIdAndRoleOrderByUsernameAsc(parent.getId(), UserRole.CHILD)
@@ -43,7 +45,7 @@ public class ParentProfileService {
                         .avatar(child.getAvatar())
                         .level(child.getLevel())
                         .activeTasksCount((int) parentAssignedTaskRepository
-                                .countByChildIdAndCompletedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                                .countByChildIdAndReviewedFalseAndExpiredFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                                         child.getId(),
                                         today,
                                         today

@@ -4,6 +4,7 @@ import com.myherochild.backend.common.model.RewardType;
 import com.myherochild.backend.common.model.RewardTypeConverter;
 import com.myherochild.backend.user.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import lombok.*;
 
 @Entity
@@ -27,6 +28,7 @@ public class ParentCustomReward {
 
     @Convert(converter = RewardTypeConverter.class)
     @Column(nullable = false, columnDefinition = "reward_type")
+    @ColumnTransformer(write = "?::reward_type")
     private RewardType type;
 
     @ManyToOne(fetch = FetchType.LAZY, optional = false)

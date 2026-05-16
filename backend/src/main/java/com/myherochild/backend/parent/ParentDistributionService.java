@@ -30,10 +30,12 @@ public class ParentDistributionService {
     private final ParentAssignedRewardRepository parentAssignedRewardRepository;
     private final TaskRepository taskRepository;
     private final RewardRepository rewardRepository;
+    private final ParentAssignedTaskStatusService parentAssignedTaskStatusService;
 
     public List<ParentDistributionChildResponse> getChildren(String username, boolean onlyToday) {
         User parent = getParent(username);
         LocalDate today = LocalDate.now();
+        parentAssignedTaskStatusService.syncExpiredTasks();
 
         return userRepository.findAllByParentIdAndRoleOrderByUsernameAsc(parent.getId(), UserRole.CHILD)
                 .stream()
@@ -51,8 +53,9 @@ public class ParentDistributionService {
     public List<ParentAssignedTaskDetailResponse> getAssignedTasks(String username, Long childId) {
         User parent = getParent(username);
         User child = getChild(parent, childId);
+        parentAssignedTaskStatusService.syncExpiredTasks();
 
-        return parentAssignedTaskRepository.findAllByChildIdAndCompletedFalseOrderByStartDateAscEndDateAscTitleAsc(
+        return parentAssignedTaskRepository.findAllByChildIdAndReviewedFalseAndExpiredFalseOrderByStartDateAscEndDateAscTitleAsc(
                         child.getId())
                 .stream()
                 .map(task -> ParentAssignedTaskDetailResponse.builder()
@@ -271,14 +274,14 @@ public class ParentDistributionService {
     private long getAssignedTasksCount(Long childId, LocalDate today, boolean onlyToday) {
         if (onlyToday) {
             return parentAssignedTaskRepository
-                    .countByChildIdAndCompletedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                    .countByChildIdAndReviewedFalseAndExpiredFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                             childId,
                             today,
                             today
                     );
         }
 
-        return parentAssignedTaskRepository.countByChildIdAndCompletedFalse(childId);
+        return parentAssignedTaskRepository.countByChildIdAndReviewedFalseAndExpiredFalse(childId);
     }
 
     private long getAssignedRewardsCount(Long childId, LocalDate today, boolean onlyToday) {

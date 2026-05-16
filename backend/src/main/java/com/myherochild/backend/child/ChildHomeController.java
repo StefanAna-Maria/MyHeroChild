@@ -21,6 +21,12 @@ public class ChildHomeController {
         return ApiResponse.success("Child home fetched successfully", response);
     }
 
+    @GetMapping("/tasks")
+    public ApiResponse<java.util.List<ChildAssignedTaskResponse>> getTasks(Authentication authentication) {
+        java.util.List<ChildAssignedTaskResponse> response = childHomeService.getTasks(authentication.getName());
+        return ApiResponse.success("Child tasks fetched successfully", response);
+    }
+
     @PatchMapping("/tasks/{taskId}/validation-request")
     public ApiResponse<ChildAssignedTaskResponse> updateTaskValidationRequest(
             Authentication authentication,
