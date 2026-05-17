@@ -1,6 +1,9 @@
 package com.myherochild.backend.packages;
 
+import com.myherochild.backend.common.model.TaskType;
+import com.myherochild.backend.common.model.TaskTypeConverter;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import lombok.*;
 
 @Entity
@@ -19,7 +22,10 @@ public class Task {
     @Column(name = "reward_points")
     private int rewardPoints;
 
-    private String type;
+    @Convert(converter = TaskTypeConverter.class)
+    @Column(nullable = false, columnDefinition = "task_type")
+    @ColumnTransformer(write = "?::task_type")
+    private TaskType type;
 
     @ManyToOne
     @JoinColumn(name = "package_id")

@@ -13,6 +13,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../../../src/services/api";
 import { AGE_CATEGORIES } from "../../../../constants/parentCatalogue";
+import {
+  formatItemTypeLabel,
+  REWARD_TYPE_OPTIONS,
+  TASK_TYPE_OPTIONS,
+} from "../../../../constants/itemTypes";
 import { getRewardImage } from "../../../../constants/rewardImages";
 import { useTheme } from "../../../../src/context/ThemeContext";
 
@@ -134,6 +139,8 @@ export default function PackageDetailScreen() {
   const [editingRewardState, setEditingRewardState] = useState<EditingState<RewardDraft>>(null);
   const [isSaving, setIsSaving] = useState(false);
   const [isAgeDropdownOpen, setIsAgeDropdownOpen] = useState(false);
+  const [isTaskTypeDropdownOpen, setIsTaskTypeDropdownOpen] = useState(false);
+  const [isRewardTypeDropdownOpen, setIsRewardTypeDropdownOpen] = useState(false);
 
   const syncDraftState = useCallback((data: PackageDetail) => {
     const nextDraft = mapToDraft(data);
@@ -161,6 +168,8 @@ export default function PackageDetailScreen() {
       setEditingTaskState(null);
       setEditingRewardState(null);
       setIsAgeDropdownOpen(false);
+      setIsTaskTypeDropdownOpen(false);
+      setIsRewardTypeDropdownOpen(false);
     }
   }, [edit, pkg, syncDraftState]);
 
@@ -348,6 +357,8 @@ export default function PackageDetailScreen() {
     setEditingTaskState(null);
     setEditingRewardState(null);
     setIsAgeDropdownOpen(false);
+    setIsTaskTypeDropdownOpen(false);
+    setIsRewardTypeDropdownOpen(false);
   };
 
   const handleCancelEdit = () => {
@@ -357,6 +368,8 @@ export default function PackageDetailScreen() {
     setEditingTaskState(null);
     setEditingRewardState(null);
     setIsAgeDropdownOpen(false);
+    setIsTaskTypeDropdownOpen(false);
+    setIsRewardTypeDropdownOpen(false);
   };
 
   const handleSave = async () => {
@@ -400,6 +413,8 @@ export default function PackageDetailScreen() {
       setIsEditingPackage(false);
       setEditingTaskState(null);
       setEditingRewardState(null);
+      setIsTaskTypeDropdownOpen(false);
+      setIsRewardTypeDropdownOpen(false);
       router.replace("/(admin)/packages");
     } catch {
       Alert.alert("Save failed", "The package could not be updated.");
@@ -438,6 +453,7 @@ export default function PackageDetailScreen() {
       isNew: false,
       original: { ...draftPkg.tasks[index] },
     });
+    setIsTaskTypeDropdownOpen(false);
   };
 
   const handleOpenRewardEdit = (index: number) => {
@@ -448,6 +464,7 @@ export default function PackageDetailScreen() {
       isNew: false,
       original: { ...draftPkg.rewards[index] },
     });
+    setIsRewardTypeDropdownOpen(false);
   };
 
   const handleCancelTaskEdit = () => {
@@ -480,6 +497,7 @@ export default function PackageDetailScreen() {
     }
 
     setEditingTaskState(null);
+    setIsTaskTypeDropdownOpen(false);
   };
 
   const handleCancelRewardEdit = () => {
@@ -512,6 +530,7 @@ export default function PackageDetailScreen() {
     }
 
     setEditingRewardState(null);
+    setIsRewardTypeDropdownOpen(false);
   };
 
   const handleSaveTaskChanges = () => {
@@ -519,6 +538,7 @@ export default function PackageDetailScreen() {
     const isValid = validateTaskAt(editingTaskState.index);
     if (!isValid) return;
     setEditingTaskState(null);
+    setIsTaskTypeDropdownOpen(false);
   };
 
   const handleSaveRewardChanges = () => {
@@ -526,6 +546,7 @@ export default function PackageDetailScreen() {
     const isValid = validateRewardAt(editingRewardState.index);
     if (!isValid) return;
     setEditingRewardState(null);
+    setIsRewardTypeDropdownOpen(false);
   };
 
   const handleDeleteTask = (index: number) => {
@@ -539,6 +560,7 @@ export default function PackageDetailScreen() {
 
     setTaskErrors((current) => current.filter((_, errorIndex) => errorIndex !== index));
     setEditingTaskState(null);
+    setIsTaskTypeDropdownOpen(false);
   };
 
   const handleDeleteReward = (index: number) => {
@@ -552,6 +574,7 @@ export default function PackageDetailScreen() {
 
     setRewardErrors((current) => current.filter((_, errorIndex) => errorIndex !== index));
     setEditingRewardState(null);
+    setIsRewardTypeDropdownOpen(false);
   };
 
   const addTask = () => {
@@ -570,6 +593,7 @@ export default function PackageDetailScreen() {
     });
     setTaskErrors((current) => [{}, ...current]);
     setEditingTaskState({ index: 0, isNew: true, original: null });
+    setIsTaskTypeDropdownOpen(false);
   };
 
   const addReward = () => {
@@ -588,6 +612,7 @@ export default function PackageDetailScreen() {
     });
     setRewardErrors((current) => [{}, ...current]);
     setEditingRewardState({ index: 0, isNew: true, original: null });
+    setIsRewardTypeDropdownOpen(false);
   };
 
   if (!draftPkg) {
@@ -907,19 +932,62 @@ export default function PackageDetailScreen() {
                     </View>
 
                     <View>
-                      <TextInput
-                        value={task.type}
-                        onChangeText={(value) => updateTask(index, "type", value)}
+                      <Pressable
+                        onPress={() => setIsTaskTypeDropdownOpen((current) => !current)}
                         style={[
-                          s.input,
+                          s.selectField,
                           inputColors(theme.colors.surface, theme.colors.text),
                           taskError.type && { borderColor: theme.colors.error },
                         ]}
-                        placeholder="Type"
-                        placeholderTextColor={
-                          taskError.type ? theme.colors.error : theme.colors.textMuted
-                        }
-                      />
+                      >
+                        <Text
+                          style={{
+                            color: task.type ? theme.colors.text : theme.colors.textMuted,
+                            fontSize: 16,
+                          }}
+                        >
+                          {task.type ? formatItemTypeLabel(task.type) : "Select type"}
+                        </Text>
+                        <Ionicons
+                          name={isTaskTypeDropdownOpen ? "chevron-up" : "chevron-down"}
+                          size={18}
+                          color={theme.colors.textMuted}
+                        />
+                      </Pressable>
+                      {isTaskTypeDropdownOpen ? (
+                        <View
+                          style={[
+                            s.dropdown,
+                            {
+                              backgroundColor: theme.colors.surface,
+                              borderColor: theme.colors.border,
+                            },
+                          ]}
+                        >
+                          {TASK_TYPE_OPTIONS.map((option) => (
+                            <Pressable
+                              key={option}
+                              onPress={() => {
+                                updateTask(index, "type", option);
+                                setIsTaskTypeDropdownOpen(false);
+                              }}
+                              style={[
+                                s.dropdownOption,
+                                option === task.type && { backgroundColor: theme.colors.primary },
+                              ]}
+                            >
+                              <Text
+                                style={{
+                                  color: theme.colors.text,
+                                  fontWeight: option === task.type ? "700" : "500",
+                                }}
+                              >
+                                {formatItemTypeLabel(option)}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      ) : null}
                       {taskError.type ? (
                         <Text style={[s.errorText, { color: theme.colors.error }]}>
                           {taskError.type}
@@ -954,7 +1022,7 @@ export default function PackageDetailScreen() {
                     <View style={s.infoRow}>
                       <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
                         <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                          {task.type || "-"}
+                          {formatItemTypeLabel(task.type)}
                         </Text>
                       </View>
 
@@ -1091,19 +1159,62 @@ export default function PackageDetailScreen() {
                     </View>
 
                     <View>
-                      <TextInput
-                        value={reward.type}
-                        onChangeText={(value) => updateReward(index, "type", value)}
+                      <Pressable
+                        onPress={() => setIsRewardTypeDropdownOpen((current) => !current)}
                         style={[
-                          s.input,
+                          s.selectField,
                           inputColors(theme.colors.surface, theme.colors.text),
                           rewardError.type && { borderColor: theme.colors.error },
                         ]}
-                        placeholder="Type"
-                        placeholderTextColor={
-                          rewardError.type ? theme.colors.error : theme.colors.textMuted
-                        }
-                      />
+                      >
+                        <Text
+                          style={{
+                            color: reward.type ? theme.colors.text : theme.colors.textMuted,
+                            fontSize: 16,
+                          }}
+                        >
+                          {reward.type ? formatItemTypeLabel(reward.type) : "Select type"}
+                        </Text>
+                        <Ionicons
+                          name={isRewardTypeDropdownOpen ? "chevron-up" : "chevron-down"}
+                          size={18}
+                          color={theme.colors.textMuted}
+                        />
+                      </Pressable>
+                      {isRewardTypeDropdownOpen ? (
+                        <View
+                          style={[
+                            s.dropdown,
+                            {
+                              backgroundColor: theme.colors.surface,
+                              borderColor: theme.colors.border,
+                            },
+                          ]}
+                        >
+                          {REWARD_TYPE_OPTIONS.map((option) => (
+                            <Pressable
+                              key={option}
+                              onPress={() => {
+                                updateReward(index, "type", option);
+                                setIsRewardTypeDropdownOpen(false);
+                              }}
+                              style={[
+                                s.dropdownOption,
+                                option === reward.type && { backgroundColor: theme.colors.primary },
+                              ]}
+                            >
+                              <Text
+                                style={{
+                                  color: theme.colors.text,
+                                  fontWeight: option === reward.type ? "700" : "500",
+                                }}
+                              >
+                                {formatItemTypeLabel(option)}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      ) : null}
                       {rewardError.type ? (
                         <Text style={[s.errorText, { color: theme.colors.error }]}>
                           {rewardError.type}
@@ -1143,7 +1254,7 @@ export default function PackageDetailScreen() {
                       <View style={s.infoRow}>
                         <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
                           <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                            {reward.type || "-"}
+                            {formatItemTypeLabel(reward.type)}
                           </Text>
                         </View>
 

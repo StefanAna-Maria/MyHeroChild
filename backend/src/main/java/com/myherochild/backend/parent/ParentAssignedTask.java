@@ -1,7 +1,10 @@
 package com.myherochild.backend.parent;
 
+import com.myherochild.backend.common.model.TaskType;
+import com.myherochild.backend.common.model.TaskTypeConverter;
 import com.myherochild.backend.user.User;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import lombok.*;
 
 import java.time.LocalDate;
@@ -37,7 +40,10 @@ public class ParentAssignedTask {
     @Column(name = "reward_points", nullable = false)
     private int rewardPoints;
 
-    private String type;
+    @Convert(converter = TaskTypeConverter.class)
+    @Column(nullable = false, columnDefinition = "task_type")
+    @ColumnTransformer(write = "?::task_type")
+    private TaskType type;
 
     @Column(name = "start_date", nullable = false)
     private LocalDate startDate;
@@ -55,6 +61,20 @@ public class ParentAssignedTask {
 
     @Column(name = "completion_requested_at")
     private LocalDateTime completionRequestedAt;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean reviewed = false;
+
+    @Column
+    private Boolean approved;
+
+    @Column(name = "reviewed_at")
+    private LocalDateTime reviewedAt;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean expired = false;
 
     @Column(name = "source_kind", nullable = false)
     private String sourceKind;

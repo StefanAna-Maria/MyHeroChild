@@ -14,6 +14,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { api } from "../../../../src/services/api";
 import { useTheme } from "../../../../src/context/ThemeContext";
 import { AGE_CATEGORIES } from "../../../../constants/parentCatalogue";
+import {
+  formatItemTypeLabel,
+  REWARD_TYPE_OPTIONS,
+  TASK_TYPE_OPTIONS,
+} from "../../../../constants/itemTypes";
 import { getRewardImage } from "../../../../constants/rewardImages";
 
 type DraftTask = {
@@ -81,6 +86,8 @@ export default function CreatePackage() {
   const [rewardSectionError, setRewardSectionError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isAgeDropdownOpen, setIsAgeDropdownOpen] = useState(false);
+  const [openTaskTypeKey, setOpenTaskTypeKey] = useState<string | null>(null);
+  const [openRewardTypeKey, setOpenRewardTypeKey] = useState<string | null>(null);
 
   const ageOptions = useMemo(() => AGE_CATEGORIES.map((category) => category.key), []);
 
@@ -162,6 +169,7 @@ export default function CreatePackage() {
     }
 
     setTaskSectionError("");
+    setOpenTaskTypeKey(null);
     setTasks((current) => [newTask(), ...current]);
     setTaskErrors((current) => [{}, ...current]);
   };
@@ -175,6 +183,7 @@ export default function CreatePackage() {
     }
 
     setRewardSectionError("");
+    setOpenRewardTypeKey(null);
     setRewards((current) => [newReward(), ...current]);
     setRewardErrors((current) => [{}, ...current]);
   };
@@ -218,11 +227,13 @@ export default function CreatePackage() {
   };
 
   const deleteTask = (index: number) => {
+    setOpenTaskTypeKey(null);
     setTasks((current) => current.filter((_, taskIndex) => taskIndex !== index));
     setTaskErrors((current) => current.filter((_, errorIndex) => errorIndex !== index));
   };
 
   const deleteReward = (index: number) => {
+    setOpenRewardTypeKey(null);
     setRewards((current) => current.filter((_, rewardIndex) => rewardIndex !== index));
     setRewardErrors((current) => current.filter((_, errorIndex) => errorIndex !== index));
   };
@@ -554,20 +565,68 @@ export default function CreatePackage() {
                   </View>
 
                   <View>
-                    <TextInput
-                      placeholder="Type"
-                      placeholderTextColor={errors.type ? theme.colors.error : theme.colors.textMuted}
-                      value={task.type}
-                      onChangeText={(value) => updateTask(index, "type", value)}
+                    <Pressable
+                      onPress={() =>
+                        setOpenTaskTypeKey((current) =>
+                          current === `task-${index}` ? null : `task-${index}`
+                        )
+                      }
                       style={[
-                        s.input,
+                        s.selectField,
                         {
                           backgroundColor: theme.colors.surface,
-                          color: theme.colors.text,
                           borderColor: errors.type ? theme.colors.error : "transparent",
                         },
                       ]}
-                    />
+                    >
+                      <Text
+                        style={{
+                          color: task.type ? theme.colors.text : theme.colors.textMuted,
+                          fontSize: 16,
+                        }}
+                      >
+                        {task.type ? formatItemTypeLabel(task.type) : "Select type"}
+                      </Text>
+                      <Ionicons
+                        name={openTaskTypeKey === `task-${index}` ? "chevron-up" : "chevron-down"}
+                        size={18}
+                        color={theme.colors.textMuted}
+                      />
+                    </Pressable>
+                    {openTaskTypeKey === `task-${index}` ? (
+                      <View
+                        style={[
+                          s.dropdown,
+                          {
+                            backgroundColor: theme.colors.surface,
+                            borderColor: theme.colors.border,
+                          },
+                        ]}
+                      >
+                        {TASK_TYPE_OPTIONS.map((option) => (
+                          <Pressable
+                            key={option}
+                            onPress={() => {
+                              updateTask(index, "type", option);
+                              setOpenTaskTypeKey(null);
+                            }}
+                            style={[
+                              s.dropdownOption,
+                              option === task.type && { backgroundColor: theme.colors.primary },
+                            ]}
+                          >
+                            <Text
+                              style={{
+                                color: theme.colors.text,
+                                fontWeight: option === task.type ? "700" : "500",
+                              }}
+                            >
+                              {formatItemTypeLabel(option)}
+                            </Text>
+                          </Pressable>
+                        ))}
+                      </View>
+                    ) : null}
                     {errors.type ? (
                       <Text style={[s.errorText, { color: theme.colors.error }]}>
                         {errors.type}
@@ -578,7 +637,7 @@ export default function CreatePackage() {
                   <View style={s.previewRow}>
                     <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
                       <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                        {task.type.trim() || "type"}
+                        {task.type ? formatItemTypeLabel(task.type) : "Type"}
                       </Text>
                     </View>
 
@@ -713,22 +772,70 @@ export default function CreatePackage() {
                     </View>
 
                     <View>
-                      <TextInput
-                        placeholder="Type"
-                        placeholderTextColor={
-                          errors.type ? theme.colors.error : theme.colors.textMuted
+                      <Pressable
+                        onPress={() =>
+                          setOpenRewardTypeKey((current) =>
+                            current === `reward-${index}` ? null : `reward-${index}`
+                          )
                         }
-                        value={reward.type}
-                        onChangeText={(value) => updateReward(index, "type", value)}
                         style={[
-                          s.input,
+                          s.selectField,
                           {
                             backgroundColor: theme.colors.surface,
-                            color: theme.colors.text,
                             borderColor: errors.type ? theme.colors.error : "transparent",
                           },
                         ]}
-                      />
+                      >
+                        <Text
+                          style={{
+                            color: reward.type ? theme.colors.text : theme.colors.textMuted,
+                            fontSize: 16,
+                          }}
+                        >
+                          {reward.type ? formatItemTypeLabel(reward.type) : "Select type"}
+                        </Text>
+                        <Ionicons
+                          name={
+                            openRewardTypeKey === `reward-${index}` ? "chevron-up" : "chevron-down"
+                          }
+                          size={18}
+                          color={theme.colors.textMuted}
+                        />
+                      </Pressable>
+                      {openRewardTypeKey === `reward-${index}` ? (
+                        <View
+                          style={[
+                            s.dropdown,
+                            {
+                              backgroundColor: theme.colors.surface,
+                              borderColor: theme.colors.border,
+                            },
+                          ]}
+                        >
+                          {REWARD_TYPE_OPTIONS.map((option) => (
+                            <Pressable
+                              key={option}
+                              onPress={() => {
+                                updateReward(index, "type", option);
+                                setOpenRewardTypeKey(null);
+                              }}
+                              style={[
+                                s.dropdownOption,
+                                option === reward.type && { backgroundColor: theme.colors.primary },
+                              ]}
+                            >
+                              <Text
+                                style={{
+                                  color: theme.colors.text,
+                                  fontWeight: option === reward.type ? "700" : "500",
+                                }}
+                              >
+                                {formatItemTypeLabel(option)}
+                              </Text>
+                            </Pressable>
+                          ))}
+                        </View>
+                      ) : null}
                       {errors.type ? (
                         <Text style={[s.errorText, { color: theme.colors.error }]}>
                           {errors.type}
@@ -739,7 +846,7 @@ export default function CreatePackage() {
                     <View style={s.previewRow}>
                       <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
                         <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                          {reward.type.trim() || "type"}
+                          {reward.type ? formatItemTypeLabel(reward.type) : "Type"}
                         </Text>
                       </View>
 

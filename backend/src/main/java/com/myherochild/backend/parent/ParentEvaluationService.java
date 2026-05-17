@@ -26,12 +26,14 @@ public class ParentEvaluationService {
     private final ParentAssignedTaskRepository parentAssignedTaskRepository;
     private final ChildNotificationRepository childNotificationRepository;
     private final UserLevelService userLevelService;
+    private final ParentAssignedTaskStatusService parentAssignedTaskStatusService;
 
     public List<ParentEvaluationChildResponse> getPendingTasks(String username) {
         User parent = getParent(username);
+        parentAssignedTaskStatusService.syncExpiredTasks();
 
         List<ParentAssignedTask> pendingTasks = parentAssignedTaskRepository
-                .findAllByParentIdAndCompletionRequestedTrueAndCompletedFalseOrderByCompletionRequestedAtAscCreatedAtAsc(
+                .findAllByParentIdAndCompletionRequestedTrueAndReviewedFalseOrderByCompletionRequestedAtAscCreatedAtAsc(
                         parent.getId()
                 );
 
@@ -96,7 +98,12 @@ public class ParentEvaluationService {
             );
         }
 
-        parentAssignedTaskRepository.delete(task);
+        task.setReviewed(true);
+        task.setApproved(true);
+        task.setReviewedAt(LocalDateTime.now());
+        task.setCompletionRequested(false);
+        task.setCompletionRequestedAt(null);
+        parentAssignedTaskRepository.save(task);
     }
 
     public void rejectTask(String username, Long taskId) {
@@ -111,7 +118,12 @@ public class ParentEvaluationService {
                         + "\" was not approved this time, so you did not receive rewards."
         );
 
-        parentAssignedTaskRepository.delete(task);
+        task.setReviewed(true);
+        task.setApproved(false);
+        task.setReviewedAt(LocalDateTime.now());
+        task.setCompletionRequested(false);
+        task.setCompletionRequestedAt(null);
+        parentAssignedTaskRepository.save(task);
     }
 
     private void createNotification(User child, String type, String title, String message) {
@@ -145,7 +157,7 @@ public class ParentEvaluationService {
             throw new BusinessException("This task does not belong to the current parent");
         }
 
-        if (task.isCompleted() || !task.isCompletionRequested()) {
+        if (task.isReviewed() || !task.isCompletionRequested()) {
             throw new BusinessException("This task is not pending validation");
         }
 

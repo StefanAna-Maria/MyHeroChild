@@ -1,6 +1,9 @@
 package com.myherochild.backend.packages;
 
+import com.myherochild.backend.common.model.RewardType;
+import com.myherochild.backend.common.model.RewardTypeConverter;
 import jakarta.persistence.*;
+import org.hibernate.annotations.ColumnTransformer;
 import lombok.*;
 
 @Entity
@@ -16,7 +19,10 @@ public class Reward {
 
     private int price;
 
-    private String type;
+    @Convert(converter = RewardTypeConverter.class)
+    @Column(nullable = false, columnDefinition = "reward_type")
+    @ColumnTransformer(write = "?::reward_type")
+    private RewardType type;
 
     //private String image;
 

@@ -10,6 +10,7 @@ import com.myherochild.backend.parent.ParentAssignedReward;
 import com.myherochild.backend.parent.ParentAssignedRewardRepository;
 import com.myherochild.backend.parent.ParentAssignedTask;
 import com.myherochild.backend.parent.ParentAssignedTaskRepository;
+import com.myherochild.backend.parent.ParentAssignedTaskStatusService;
 import com.myherochild.backend.user.User;
 import com.myherochild.backend.user.UserRepository;
 import com.myherochild.backend.user.UserRole;
@@ -28,16 +29,18 @@ public class ChildHomeService {
     private final ParentAssignedTaskRepository parentAssignedTaskRepository;
     private final ParentAssignedRewardRepository parentAssignedRewardRepository;
     private final ChildNotificationRepository childNotificationRepository;
+    private final ParentAssignedTaskStatusService parentAssignedTaskStatusService;
 
     public ChildHomeResponse getHome(String username) {
         User child = getChild(username);
         LocalDate today = LocalDate.now();
+        parentAssignedTaskStatusService.syncExpiredTasks();
         java.util.List<ChildNotification> unseenNotifications = childNotificationRepository
                 .findAllByChildIdAndSeenFalseOrderByCreatedAtAsc(child.getId());
 
         ChildHomeResponse response = ChildHomeResponse.builder()
                 .todaysTasks(parentAssignedTaskRepository
-                        .findAllByChildIdAndCompletedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByEndDateAscTitleAsc(
+                        .findAllByChildIdAndReviewedFalseAndExpiredFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqualOrderByEndDateAscTitleAsc(
                                 child.getId(),
                                 today,
                                 today
@@ -71,18 +74,38 @@ public class ChildHomeService {
         return response;
     }
 
+    public java.util.List<ChildAssignedTaskResponse> getTasks(String username) {
+        User child = getChild(username);
+        LocalDate today = LocalDate.now();
+        parentAssignedTaskStatusService.syncExpiredTasks();
+
+        return parentAssignedTaskRepository
+                .findAllByChildIdAndReviewedFalseAndExpiredFalseAndEndDateGreaterThanEqualOrderByStartDateAscEndDateAscTitleAsc(
+                        child.getId(),
+                        today
+                )
+                .stream()
+                .map(this::mapTask)
+                .toList();
+    }
+
     public ChildAssignedTaskResponse updateTaskValidationRequest(
             String username,
             Long taskId,
             ChildTaskValidationRequest request
     ) {
         User child = getChild(username);
+        parentAssignedTaskStatusService.syncExpiredTasks();
 
         ParentAssignedTask task = parentAssignedTaskRepository.findByIdAndChildId(taskId, child.getId())
                 .orElseThrow(() -> new BusinessException("Task not found"));
 
-        if (task.isCompleted()) {
-            throw new BusinessException("Completed tasks can no longer be updated");
+        if (task.isReviewed()) {
+            throw new BusinessException("Reviewed tasks can no longer be updated");
+        }
+
+        if (task.isExpired()) {
+            throw new BusinessException("Expired tasks can no longer be updated");
         }
 
         task.setCompletionRequested(request.isCompletionRequested());
@@ -109,7 +132,7 @@ public class ChildHomeService {
                 .title(task.getTitle())
                 .xp(task.getXp())
                 .rewardPoints(task.getRewardPoints())
-                .type(task.getType())
+                .type(task.getType().getValue())
                 .startDate(task.getStartDate().toString())
                 .endDate(task.getEndDate().toString())
                 .completionRequested(task.isCompletionRequested())
@@ -121,7 +144,7 @@ public class ChildHomeService {
                 .id(reward.getId())
                 .title(reward.getTitle())
                 .price(reward.getPrice())
-                .type(reward.getType())
+                .type(reward.getType().getValue())
                 .startDate(reward.getStartDate().toString())
                 .endDate(reward.getEndDate().toString())
                 .claimed(reward.isClaimed())

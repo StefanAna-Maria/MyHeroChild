@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../../../../src/context/ThemeContext";
 import { api } from "../../../../src/services/api";
 import { TaskItem } from "../../../../constants/parentCatalogue";
+import { formatItemTypeLabel, TASK_TYPE_OPTIONS } from "../../../../constants/itemTypes";
 
 type FormErrors = {
   title?: string;
@@ -37,6 +38,7 @@ export default function DistributionMyTasksScreen() {
   const [editingId, setEditingId] = useState<number | null>(null);
   const [isFormVisible, setIsFormVisible] = useState(false);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [isTypeDropdownOpen, setIsTypeDropdownOpen] = useState(false);
   const visibleTasks = editingId ? tasks.filter((task) => task.id !== editingId) : tasks;
 
   const loadTasks = useCallback(async () => {
@@ -58,6 +60,7 @@ export default function DistributionMyTasksScreen() {
     setEditingId(null);
     setIsFormVisible(false);
     setErrors({});
+    setIsTypeDropdownOpen(false);
   };
 
   const validateForm = () => {
@@ -91,6 +94,7 @@ export default function DistributionMyTasksScreen() {
     setEditingId(null);
     setErrors({});
     setIsFormVisible(true);
+    setIsTypeDropdownOpen(false);
   };
 
   const handleEdit = (task: TaskItem) => {
@@ -101,6 +105,7 @@ export default function DistributionMyTasksScreen() {
     setEditingId(task.id);
     setErrors({});
     setIsFormVisible(true);
+    setIsTypeDropdownOpen(false);
   };
 
   const handleSave = async () => {
@@ -266,22 +271,54 @@ export default function DistributionMyTasksScreen() {
             </View>
 
             <View>
-              <TextInput
-                placeholder="Type"
-                placeholderTextColor={errors.type ? theme.colors.error : theme.colors.textMuted}
-                value={type}
-                onChangeText={(value) => {
-                  setType(value);
-                  setErrors((current) => ({ ...current, type: undefined }));
-                }}
+              <Pressable
+                onPress={() => setIsTypeDropdownOpen((current) => !current)}
                 style={[
-                  s.input,
+                  s.selectField,
                   {
-                    color: theme.colors.text,
                     borderColor: errors.type ? theme.colors.error : theme.colors.border,
                   },
                 ]}
-              />
+              >
+                <Text style={{ color: type ? theme.colors.text : theme.colors.textMuted, fontSize: 16 }}>
+                  {type ? formatItemTypeLabel(type) : "Select type"}
+                </Text>
+                <Ionicons
+                  name={isTypeDropdownOpen ? "chevron-up" : "chevron-down"}
+                  size={18}
+                  color={theme.colors.textMuted}
+                />
+              </Pressable>
+              {isTypeDropdownOpen ? (
+                <View
+                  style={[
+                    s.dropdown,
+                    {
+                      backgroundColor: theme.colors.surfaceAlt,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  {TASK_TYPE_OPTIONS.map((option) => (
+                    <Pressable
+                      key={option}
+                      onPress={() => {
+                        setType(option);
+                        setErrors((current) => ({ ...current, type: undefined }));
+                        setIsTypeDropdownOpen(false);
+                      }}
+                      style={[
+                        s.dropdownOption,
+                        option === type && { backgroundColor: theme.colors.tabIconActive },
+                      ]}
+                    >
+                      <Text style={{ color: theme.colors.text, fontWeight: option === type ? "700" : "500" }}>
+                        {formatItemTypeLabel(option)}
+                      </Text>
+                    </Pressable>
+                  ))}
+                </View>
+              ) : null}
               {errors.type ? (
                 <Text style={[s.errorText, { color: theme.colors.error }]}>{errors.type}</Text>
               ) : null}
@@ -350,7 +387,7 @@ export default function DistributionMyTasksScreen() {
               <View style={s.infoRow}>
                 <View style={[s.typeBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
                   <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                    {task.type || "-"}
+                    {formatItemTypeLabel(task.type)}
                   </Text>
                 </View>
 
@@ -464,6 +501,26 @@ const s = StyleSheet.create({
     borderRadius: 18,
     padding: 16,
     borderWidth: 1,
+  },
+  selectField: {
+    minHeight: 64,
+    borderRadius: 18,
+    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#ffffff",
+    borderWidth: 1,
+  },
+  dropdown: {
+    marginTop: 10,
+    borderRadius: 16,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  dropdownOption: {
+    paddingHorizontal: 18,
+    paddingVertical: 14,
   },
   itemCard: {
     borderRadius: 18,

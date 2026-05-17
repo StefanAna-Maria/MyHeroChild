@@ -1,5 +1,7 @@
 package com.myherochild.backend.packages;
 
+import com.myherochild.backend.common.model.RewardType;
+import com.myherochild.backend.common.model.TaskType;
 import com.myherochild.backend.packages.dto.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,7 +34,7 @@ public class PackageService {
                         .title(taskRequest.getTitle())
                         .xp(taskRequest.getXp())
                         .rewardPoints(taskRequest.getRewardPoints())
-                        .type(taskRequest.getType())
+                        .type(taskRequest.getType() == null ? TaskType.DEFAULT : taskRequest.getType())
                         .pkg(pkg)
                         .build())
                 .toList();
@@ -43,7 +45,7 @@ public class PackageService {
                 .map(rewardRequest -> Reward.builder()
                         .title(rewardRequest.getTitle())
                         .price(rewardRequest.getPrice())
-                        .type(rewardRequest.getType())
+                        .type(rewardRequest.getType() == null ? RewardType.DEFAULT : rewardRequest.getType())
                         //.image(rewardRequest.getImage())
                         .pkg(pkg)
                         .build())
@@ -115,7 +117,7 @@ public class PackageService {
                             task.setTitle(taskRequest.getTitle());
                             task.setXp(taskRequest.getXp());
                             task.setRewardPoints(taskRequest.getRewardPoints());
-                            task.setType(taskRequest.getType());
+                            task.setType(taskRequest.getType() == null ? TaskType.DEFAULT : taskRequest.getType());
                             task.setPkg(pkg);
 
                             return task;
@@ -147,7 +149,7 @@ public class PackageService {
 
                             reward.setTitle(rewardRequest.getTitle());
                             reward.setPrice(rewardRequest.getPrice());
-                            reward.setType(rewardRequest.getType());
+                            reward.setType(rewardRequest.getType() == null ? RewardType.DEFAULT : rewardRequest.getType());
                             reward.setPkg(pkg);
 
                             return reward;
@@ -173,7 +175,7 @@ public class PackageService {
                                                 .title(task.getTitle())
                                                 .xp(task.getXp())
                                                 .rewardPoints(task.getRewardPoints())
-                                                .type(task.getType())
+                                                .type(task.getType().getValue())
                                                 .build())
                                         .toList()
                 )
@@ -184,7 +186,7 @@ public class PackageService {
                                                 .id(reward.getId())
                                                 .title(reward.getTitle())
                                                 .price(reward.getPrice())
-                                                .type(reward.getType())
+                                                .type(reward.getType().getValue())
                                                 //.image(reward.getImage())
                                                 .build())
                                         .toList()
