@@ -31,11 +31,13 @@ public class ParentDistributionService {
     private final TaskRepository taskRepository;
     private final RewardRepository rewardRepository;
     private final ParentAssignedTaskStatusService parentAssignedTaskStatusService;
+    private final ParentAssignedRewardStatusService parentAssignedRewardStatusService;
 
     public List<ParentDistributionChildResponse> getChildren(String username, boolean onlyToday) {
         User parent = getParent(username);
         LocalDate today = LocalDate.now();
         parentAssignedTaskStatusService.syncExpiredTasks();
+        parentAssignedRewardStatusService.syncExpiredRewards();
 
         return userRepository.findAllByParentIdAndRoleOrderByUsernameAsc(parent.getId(), UserRole.CHILD)
                 .stream()
@@ -73,9 +75,10 @@ public class ParentDistributionService {
     public List<ParentAssignedRewardDetailResponse> getAssignedRewards(String username, Long childId) {
         User parent = getParent(username);
         User child = getChild(parent, childId);
+        parentAssignedRewardStatusService.syncExpiredRewards();
 
         return parentAssignedRewardRepository
-                .findAllByChildIdAndClaimedFalseOrderByStartDateAscEndDateAscTitleAsc(child.getId())
+                .findAllByChildIdAndClaimedFalseAndExpiredFalseOrderByStartDateAscEndDateAscTitleAsc(child.getId())
                 .stream()
                 .map(reward -> ParentAssignedRewardDetailResponse.builder()
                         .id(reward.getId())
@@ -287,14 +290,14 @@ public class ParentDistributionService {
     private long getAssignedRewardsCount(Long childId, LocalDate today, boolean onlyToday) {
         if (onlyToday) {
             return parentAssignedRewardRepository
-                    .countByChildIdAndClaimedFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                    .countByChildIdAndClaimedFalseAndExpiredFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
                             childId,
                             today,
                             today
                     );
         }
 
-        return parentAssignedRewardRepository.countByChildIdAndClaimedFalse(childId);
+        return parentAssignedRewardRepository.countByChildIdAndClaimedFalseAndExpiredFalse(childId);
     }
 
     private void validateSelection(LocalDate startDate, LocalDate endDate) {

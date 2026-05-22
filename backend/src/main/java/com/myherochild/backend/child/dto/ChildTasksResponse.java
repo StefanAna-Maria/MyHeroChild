@@ -9,12 +9,9 @@ import java.util.List;
 @Data
 @Builder
 @AllArgsConstructor
-public class ChildHomeResponse {
+public class ChildTasksResponse {
 
-    private List<ChildAssignedTaskResponse> todaysTasks;
+    private List<ChildAssignedTaskResponse> tasks;
     private ChildDailyBonusResponse dailyBonus;
-    private List<ChildAssignedRewardResponse> rewardShop;
-    private List<ChildAssignedRewardResponse> myRewards;
-    private List<String> wishlist;
     private List<ChildNotificationResponse> notifications;
 }

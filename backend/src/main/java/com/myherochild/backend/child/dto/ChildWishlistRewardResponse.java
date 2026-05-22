@@ -7,15 +7,8 @@ import lombok.Data;
 @Data
 @Builder
 @AllArgsConstructor
-public class ChildAssignedRewardResponse {
-
+public class ChildWishlistRewardResponse {
     private Long id;
     private String title;
-    private int price;
     private String type;
-    private String startDate;
-    private String endDate;
-    private boolean claimed;
-    private boolean granted;
-    private String grantedAt;
 }

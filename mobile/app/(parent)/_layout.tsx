@@ -84,6 +84,20 @@ export default function ParentTabs() {
         }}
       />
 
+      <Tabs.Screen
+        name="profile-child-detail"
+        options={{
+          href: null,
+        }}
+      />
+
+      <Tabs.Screen
+        name="profile-child-wishlist"
+        options={{
+          href: null,
+        }}
+      />
+
     </Tabs>
   );
 }

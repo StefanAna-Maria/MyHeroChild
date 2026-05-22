@@ -6,6 +6,7 @@ import { useTheme } from "../src/context/ThemeContext";
 type Props = {
   visible: boolean;
   selectedDate?: string;
+  minDate?: string;
   onClose: () => void;
   onSelect: (value: string) => void;
 };
@@ -32,6 +33,12 @@ const parseDate = (value?: string) => {
   const [year, month, day] = parts;
   const date = new Date(year, month - 1, day);
   return Number.isNaN(date.getTime()) ? null : date;
+};
+
+const normalizeDate = (date: Date) => {
+  const normalized = new Date(date);
+  normalized.setHours(0, 0, 0, 0);
+  return normalized;
 };
 
 const getMonthMatrix = (monthDate: Date) => {
@@ -73,6 +80,7 @@ const getMonthMatrix = (monthDate: Date) => {
 export default function CalendarPickerModal({
   visible,
   selectedDate,
+  minDate,
   onClose,
   onSelect,
 }: Props) {
@@ -87,6 +95,19 @@ export default function CalendarPickerModal({
 
   const selected = useMemo(() => selectedDate ?? "", [selectedDate]);
   const monthCells = useMemo(() => getMonthMatrix(visibleMonth), [visibleMonth]);
+  const monthRows = useMemo(() => {
+    const rows: { date: Date; inCurrentMonth: boolean }[][] = [];
+
+    for (let index = 0; index < monthCells.length; index += 7) {
+      rows.push(monthCells.slice(index, index + 7));
+    }
+
+    return rows;
+  }, [monthCells]);
+  const minAllowedDate = useMemo(() => {
+    const parsed = parseDate(minDate);
+    return parsed ? normalizeDate(parsed) : null;
+  }, [minDate]);
 
   const monthLabel = visibleMonth.toLocaleDateString("en-US", {
     month: "long",
@@ -140,38 +161,62 @@ export default function CalendarPickerModal({
           </View>
 
           <View style={s.grid}>
-            {monthCells.map((cell) => {
-              const value = formatDate(cell.date);
-              const isSelected = value === selected;
+            {monthRows.map((row, rowIndex) => (
+              <View key={`row-${rowIndex}`} style={s.weekRow}>
+                {row.map((cell) => {
+                  const value = formatDate(cell.date);
+                  const isSelected = value === selected;
+                  const isDisabled =
+                    minAllowedDate !== null &&
+                    normalizeDate(cell.date).getTime() < minAllowedDate.getTime();
 
-              return (
-                <Pressable
-                  key={value}
-                  style={[
-                    s.dayCell,
-                    {
-                      backgroundColor: isSelected
-                        ? theme.colors.tabIconActive
-                        : theme.colors.surfaceAlt,
-                      opacity: cell.inCurrentMonth ? 1 : 0.55,
-                    },
-                  ]}
-                  onPress={() => {
-                    onSelect(value);
-                    onClose();
-                  }}
-                >
-                  <Text
-                    style={[
-                      s.dayText,
-                      { color: isSelected ? "#FFFFFF" : theme.colors.text },
-                    ]}
-                  >
-                    {cell.date.getDate()}
-                  </Text>
-                </Pressable>
-              );
-            })}
+                  return (
+                    <Pressable
+                      key={value}
+                      disabled={isDisabled}
+                      style={[
+                        s.dayCellWrap,
+                        {
+                          opacity: cell.inCurrentMonth ? 1 : 0.55,
+                        },
+                      ]}
+                      onPress={() => {
+                        onSelect(value);
+                        onClose();
+                      }}
+                    >
+                      <View
+                        style={[
+                          s.dayCell,
+                          {
+                            backgroundColor: isDisabled
+                              ? "#D4D8DD"
+                              : isSelected
+                                ? theme.colors.tabIconActive
+                                : theme.colors.surfaceAlt,
+                          },
+                        ]}
+                      >
+                        <Text
+                          style={[
+                            s.dayText,
+                            {
+                              color: isDisabled
+                                ? "#7C8793"
+                                : isSelected
+                                  ? "#FFFFFF"
+                                  : theme.colors.text,
+                            },
+                          ]}
+                        >
+                          {cell.date.getDate()}
+                        </Text>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            ))}
           </View>
 
           <Pressable
@@ -223,6 +268,7 @@ const s = StyleSheet.create({
   },
   labelsRow: {
     flexDirection: "row",
+    marginBottom: 4,
   },
   dayLabel: {
     flex: 1,
@@ -231,12 +277,16 @@ const s = StyleSheet.create({
     fontWeight: "700",
   },
   grid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
     gap: 8,
   },
+  weekRow: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  dayCellWrap: {
+    flex: 1,
+  },
   dayCell: {
-    width: "13.8%",
     aspectRatio: 1,
     borderRadius: 14,
     alignItems: "center",

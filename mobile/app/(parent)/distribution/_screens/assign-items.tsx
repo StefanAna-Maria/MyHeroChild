@@ -36,6 +36,13 @@ type ChildSummary = {
 
 const DATE_ERROR = "Use YYYY-MM-DD";
 const isValidDate = (value: string) => !Number.isNaN(new Date(`${value}T00:00:00`).getTime());
+const getTodayString = () => {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, "0");
+  const day = String(today.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 const compareDateStrings = (startDate: string, endDate: string) =>
   new Date(`${startDate}T00:00:00`).getTime() <= new Date(`${endDate}T00:00:00`).getTime();
@@ -72,6 +79,7 @@ export default function AssignItemsScreen() {
   } | null>(null);
 
   const currentMode: Mode = mode === "rewards" ? "rewards" : "tasks";
+  const todayString = useMemo(() => getTodayString(), []);
 
   const screenTitle =
     currentMode === "tasks" ? "Assign Tasks" : "Activate Rewards";
@@ -191,13 +199,18 @@ export default function AssignItemsScreen() {
     for (const key of keys) {
       const selection = selections[key];
 
-      if (!isValidDate(selection.startDate) || !isValidDate(selection.endDate)) {
-        nextErrors[key] = DATE_ERROR;
-        continue;
-      }
+        if (!isValidDate(selection.startDate) || !isValidDate(selection.endDate)) {
+          nextErrors[key] = DATE_ERROR;
+          continue;
+        }
 
-      if (!compareDateStrings(selection.startDate, selection.endDate)) {
-        nextErrors[key] = "End date must be after start date";
+        if (selection.startDate < todayString || selection.endDate < todayString) {
+          nextErrors[key] = "Dates cannot be earlier than today";
+          continue;
+        }
+
+        if (!compareDateStrings(selection.startDate, selection.endDate)) {
+          nextErrors[key] = "End date must be after start date";
       }
     }
 
@@ -602,6 +615,7 @@ export default function AssignItemsScreen() {
 
       <CalendarPickerModal
         visible={Boolean(calendarTarget)}
+        minDate={todayString}
         selectedDate={
           calendarTarget
             ? selections[
