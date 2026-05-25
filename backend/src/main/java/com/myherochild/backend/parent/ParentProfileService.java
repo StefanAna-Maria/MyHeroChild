@@ -17,6 +17,7 @@ import com.myherochild.backend.parent.dto.ParentChildSummaryResponse;
 import com.myherochild.backend.parent.dto.ParentProfileResponse;
 import com.myherochild.backend.parent.dto.ParentWishlistRewardToCatalogueRequest;
 import com.myherochild.backend.security.JwtService;
+import com.myherochild.backend.user.UserAvatarService;
 import com.myherochild.backend.user.User;
 import com.myherochild.backend.user.UserRepository;
 import com.myherochild.backend.user.UserRole;
@@ -45,6 +46,7 @@ public class ParentProfileService {
     private final ChildNotificationRepository childNotificationRepository;
     private final ChildWishlistRewardRepository childWishlistRewardRepository;
     private final ParentCustomRewardRepository parentCustomRewardRepository;
+    private final UserAvatarService userAvatarService;
 
     public ParentProfileResponse getProfile(String username) {
         User parent = getParent(username);
@@ -271,9 +273,7 @@ public class ParentProfileService {
             throw new BusinessException("Email is required");
         }
 
-        if (nextAvatar.isEmpty()) {
-            throw new BusinessException("Avatar is required");
-        }
+        userAvatarService.validateSelectableOrCurrent(user, nextAvatar);
 
         userRepository.findByUsername(nextUsername)
                 .filter(existingUser -> !existingUser.getId().equals(user.getId()))
@@ -344,6 +344,7 @@ public class ParentProfileService {
                 .nextLevelMinTotalXp(progress.getNextLevelMinTotalXp())
                 .rewardPoints(syncedUser.getRewardPoints())
                 .avatar(syncedUser.getAvatar())
+                .avatarOptions(userAvatarService.getAvatarOptions(syncedUser))
                 .build();
     }
 }

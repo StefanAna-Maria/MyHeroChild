@@ -59,7 +59,7 @@ export default function ParentProfile() {
   const theme = useTheme();
   const router = useRouter();
   const { login } = useAuth();
-  const { refreshUser } = useUser();
+  const { user, refreshUser } = useUser();
 
   const [profile, setProfile] = useState<ParentProfileResponse | null>(null);
   const [draftUsername, setDraftUsername] = useState("");
@@ -612,9 +612,19 @@ export default function ParentProfile() {
       <AvatarPicker
         visible={avatarPickerVisible}
         onClose={() => setAvatarPickerVisible(false)}
+        currentAvatar={draftAvatar}
+        options={user?.avatarOptions}
         onSelect={(avatar) => {
           setDraftAvatar(avatar);
           setAvatarPickerVisible(false);
+        }}
+        onClaim={async (avatar) => {
+          try {
+            await api.post(`/users/me/avatars/${avatar}/claim`);
+            await refreshUser();
+          } catch (error) {
+            console.log("Avatar claim failed", error);
+          }
         }}
       />
     </View>

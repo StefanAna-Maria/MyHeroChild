@@ -21,6 +21,7 @@ public class UserController {
     private final UserRepository userRepository;
     private final ParentProfileService parentProfileService;
     private final UserLevelService userLevelService;
+    private final UserAvatarService userAvatarService;
 
     // GET CURRENT USER (folosit de frontend pentru header)
     @GetMapping("/me")
@@ -34,17 +35,7 @@ public class UserController {
         User syncedUser = userLevelService.syncLevel(user);
         LevelProgress progress = userLevelService.resolveProgress(syncedUser.getXp());
 
-        UserMeResponse response = UserMeResponse.builder()
-                .username(syncedUser.getUsername())
-                .email(syncedUser.getEmail())
-                .role(syncedUser.getRole())
-                .level(syncedUser.getLevel())
-                .xp(syncedUser.getXp())
-                .currentLevelMinTotalXp(progress.getCurrentLevelMinTotalXp())
-                .nextLevelMinTotalXp(progress.getNextLevelMinTotalXp())
-                .rewardPoints(syncedUser.getRewardPoints())
-                .avatar(syncedUser.getAvatar())
-                .build();
+        UserMeResponse response = buildUserMeResponse(syncedUser, progress);
 
         return ApiResponse.success("User fetched successfully", response);
     }
@@ -72,13 +63,49 @@ public class UserController {
 
         String avatar = body.get("avatar");
 
-        if (avatar == null || avatar.isBlank()) {
-            throw new RuntimeException("Avatar is required");
-        }
+        userAvatarService.validateSelectableOrCurrent(user, avatar);
 
         user.setAvatar(avatar);
         userRepository.save(user);
 
         return ApiResponse.success("Avatar updated successfully", null);
+    }
+
+    @PostMapping("/me/avatars/{avatarKey}/claim")
+    public ApiResponse<UserMeResponse> claimAvatar(
+            Authentication authentication,
+            @PathVariable String avatarKey
+    ) {
+        String username = authentication.getName();
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        User syncedUser = userLevelService.syncLevel(user);
+        userAvatarService.claimAvatar(syncedUser, avatarKey);
+
+        User refreshedUser = userRepository.findById(syncedUser.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        LevelProgress progress = userLevelService.resolveProgress(refreshedUser.getXp());
+
+        return ApiResponse.success(
+                "Avatar claimed successfully",
+                buildUserMeResponse(refreshedUser, progress)
+        );
+    }
+
+    private UserMeResponse buildUserMeResponse(User user, LevelProgress progress) {
+        return UserMeResponse.builder()
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .level(user.getLevel())
+                .xp(user.getXp())
+                .currentLevelMinTotalXp(progress.getCurrentLevelMinTotalXp())
+                .nextLevelMinTotalXp(progress.getNextLevelMinTotalXp())
+                .rewardPoints(user.getRewardPoints())
+                .avatar(user.getAvatar())
+                .avatarOptions(userAvatarService.getAvatarOptions(user))
+                .build();
     }
 }
