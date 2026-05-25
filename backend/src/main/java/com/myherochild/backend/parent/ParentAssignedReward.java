@@ -50,10 +50,21 @@ public class ParentAssignedReward {
 
     @Builder.Default
     @Column(nullable = false)
+    private boolean expired = false;
+
+    @Builder.Default
+    @Column(nullable = false)
     private boolean claimed = false;
 
     @Column(name = "claimed_at")
     private LocalDateTime claimedAt;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean granted = false;
+
+    @Column(name = "granted_at")
+    private LocalDateTime grantedAt;
 
     @Column(name = "source_kind", nullable = false)
     private String sourceKind;

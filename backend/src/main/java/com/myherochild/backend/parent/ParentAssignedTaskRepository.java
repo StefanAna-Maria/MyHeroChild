@@ -36,6 +36,20 @@ public interface ParentAssignedTaskRepository extends JpaRepository<ParentAssign
             java.time.LocalDate endDate
     );
 
+    List<ParentAssignedTask> findAllByChildIdOrderByCreatedAtDesc(Long childId);
+
+    long countByChildIdAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            Long childId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate
+    );
+
+    long countByChildIdAndReviewedTrueAndApprovedTrueAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+            Long childId,
+            java.time.LocalDate startDate,
+            java.time.LocalDate endDate
+    );
+
     @Modifying
     @Transactional
     @Query("""

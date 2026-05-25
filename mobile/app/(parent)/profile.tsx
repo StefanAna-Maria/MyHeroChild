@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useEffect, useMemo, useState } from "react";
+import { useRouter } from "expo-router";
 import {
   Alert,
   Image,
@@ -24,6 +25,7 @@ type ChildSummary = {
   username: string;
   avatar: AvatarType;
   activeTasksCount: number;
+  wishlistCount?: number;
 };
 
 type ClaimedRewardSummary = {
@@ -33,6 +35,7 @@ type ClaimedRewardSummary = {
   price: number | null;
   childName: string;
   childAvatar: AvatarType;
+  claimedAt?: string | null;
 };
 
 type ParentProfileResponse = {
@@ -54,6 +57,7 @@ const childNicknameStorageKey = (parentUsername: string) =>
 
 export default function ParentProfile() {
   const theme = useTheme();
+  const router = useRouter();
   const { login } = useAuth();
   const { refreshUser } = useUser();
 
@@ -69,6 +73,7 @@ export default function ParentProfile() {
   const [childNicknames, setChildNicknames] = useState<Record<number, string>>({});
   const [editingChildId, setEditingChildId] = useState<number | null>(null);
   const [draftChildNickname, setDraftChildNickname] = useState("");
+  const [grantingRewardIds, setGrantingRewardIds] = useState<number[]>([]);
 
   const loadProfile = async () => {
     try {
@@ -208,6 +213,20 @@ export default function ParentProfile() {
   const cancelChildNicknameEdit = () => {
     setEditingChildId(null);
     setDraftChildNickname("");
+  };
+
+  const grantReward = async (rewardId: number) => {
+    try {
+      setGrantingRewardIds((current) => [...current, rewardId]);
+      await api.post(`/parent/profile/claimed-rewards/${rewardId}/grant`);
+      await loadProfile();
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ?? "The reward could not be marked as granted.";
+      Alert.alert("Action failed", message);
+    } finally {
+      setGrantingRewardIds((current) => current.filter((id) => id !== rewardId));
+    }
   };
 
   const selectedAvatar = useMemo(
@@ -410,11 +429,24 @@ export default function ParentProfile() {
               No children are linked to this parent account yet.
             </Text>
           ) : (
-            children.map((child) => (
-              <View
-                key={child.id}
-                style={[s.childCard, { backgroundColor: theme.colors.surfaceAlt }]}
-              >
+            <>
+              {children.map((child) => (
+                <Pressable
+                  key={child.id}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/(parent)/profile-child-detail",
+                      params: { childId: String(child.id) },
+                    })
+                  }
+                  style={[
+                    s.childCard,
+                    {
+                      backgroundColor: theme.colors.surfaceAlt,
+                      borderColor: "transparent",
+                    },
+                  ]}
+                >
                 <Image source={avatars[child.avatar] ?? avatars.robot} style={s.childAvatar} />
 
                 <View style={s.childInfo}>
@@ -474,6 +506,9 @@ export default function ParentProfile() {
                   <Text style={{ color: theme.colors.textMuted }}>
                     Active tasks: {child.activeTasksCount}
                   </Text>
+                  <Text style={{ color: theme.colors.textMuted }}>
+                    Wishlist wishes: {child.wishlistCount ?? 0}
+                  </Text>
                 </View>
 
                 <View
@@ -483,8 +518,10 @@ export default function ParentProfile() {
                     {child.activeTasksCount}
                   </Text>
                 </View>
-              </View>
-            ))
+                </Pressable>
+              ))}
+
+            </>
           )}
         </View>
 
@@ -529,9 +566,27 @@ export default function ParentProfile() {
                   <Text style={{ color: theme.colors.textMuted }}>
                     Claimed by {getDisplayedChildName(reward)}
                   </Text>
+                  {reward.claimedAt ? (
+                    <Text style={{ color: theme.colors.textMuted }}>
+                      Claimed on {new Date(reward.claimedAt).toLocaleDateString("en-GB")}
+                    </Text>
+                  ) : null}
                 </View>
 
                 <View style={s.rewardMeta}>
+                  <Pressable
+                    onPress={() => grantReward(reward.id)}
+                    disabled={grantingRewardIds.includes(reward.id)}
+                    style={[
+                      s.rewardGrantButton,
+                      {
+                        backgroundColor: theme.colors.accent,
+                        opacity: grantingRewardIds.includes(reward.id) ? 0.7 : 1,
+                      },
+                    ]}
+                  >
+                    <Ionicons name="checkmark" size={18} color="#FFFFFF" />
+                  </Pressable>
                   <Image
                     source={avatars[reward.childAvatar] ?? avatars.robot}
                     style={s.claimedChildAvatar}
@@ -698,6 +753,7 @@ const s = StyleSheet.create({
   },
   childCard: {
     borderRadius: 18,
+    borderWidth: 2,
     padding: 14,
     flexDirection: "row",
     alignItems: "center",
@@ -749,6 +805,17 @@ const s = StyleSheet.create({
     fontWeight: "700",
     fontSize: 12,
   },
+  childWishlistButton: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  childWishlistButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
   metricBadge: {
     minWidth: 40,
     height: 40,
@@ -794,6 +861,13 @@ const s = StyleSheet.create({
     alignItems: "flex-end",
     gap: 8,
   },
+  rewardGrantButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
   claimedChildAvatar: {
     width: 28,
     height: 28,
@@ -822,5 +896,101 @@ const s = StyleSheet.create({
     width: 18,
     height: 18,
     resizeMode: "contain",
+  },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.38)",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+  },
+  modalSheet: {
+    maxHeight: "86%",
+    borderRadius: 24,
+    overflow: "hidden",
+    borderWidth: 1,
+  },
+  modalHeader: {
+    paddingTop: 22,
+    paddingBottom: 16,
+    paddingHorizontal: 18,
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  modalHeaderTextWrap: {
+    flex: 1,
+    gap: 4,
+  },
+  modalHeaderCloseButton: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  modalTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+  },
+  modalSubtitle: {
+    fontSize: 14,
+    lineHeight: 21,
+  },
+  modalContent: {
+    padding: 16,
+    gap: 12,
+  },
+  wishlistRewardCard: {
+    borderRadius: 18,
+    padding: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  addWishlistRewardButton: {
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  addWishlistRewardButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+    fontSize: 14,
+  },
+  addModalCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 18,
+    gap: 14,
+  },
+  addModalCloseButton: {
+    position: "absolute",
+    top: 14,
+    right: 14,
+    width: 30,
+    height: 30,
+    borderRadius: 15,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+  },
+  addModalPreview: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  saveToCatalogueButton: {
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  saveToCatalogueButtonText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
   },
 });

@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
@@ -12,7 +12,9 @@ import {
 import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../components/AppHeader";
+import BonusStatusBadge from "../../components/BonusStatusBadge";
 import { api } from "../../src/services/api";
+import { useUser } from "../../src/context/UserContext";
 import { useTheme } from "../../src/context/ThemeContext";
 
 type ChildTask = {
@@ -24,6 +26,26 @@ type ChildTask = {
   startDate: string;
   endDate: string;
   completionRequested: boolean;
+};
+
+type TasksData = {
+  tasks: ChildTask[];
+  dailyBonus: {
+    rewardPoints: number;
+    totalTasks: number;
+    approvedTasks: number;
+    progress: number;
+    claimable: boolean;
+    claimed: boolean;
+    restricted: boolean;
+    restrictedUntil?: string | null;
+  };
+  notifications: {
+    id: number;
+    type: string;
+    title: string;
+    message: string;
+  }[];
 };
 
 type GroupKey = "Today" | "This Week" | "Next Week" | "This Month" | "Later";
@@ -88,14 +110,30 @@ const formatRange = (startDate: string, endDate: string) => `${startDate} - ${en
 
 export default function ChildTasksScreen() {
   const theme = useTheme();
-  const [tasks, setTasks] = useState<ChildTask[]>([]);
+  const { refreshUser } = useUser();
+  const [data, setData] = useState<TasksData>({
+    tasks: [],
+    dailyBonus: {
+      rewardPoints: 100,
+      totalTasks: 0,
+      approvedTasks: 0,
+      progress: 0,
+      claimable: false,
+      claimed: false,
+      restricted: false,
+      restrictedUntil: null,
+    },
+    notifications: [],
+  });
   const [refreshing, setRefreshing] = useState(false);
   const [pendingTaskIds, setPendingTaskIds] = useState<number[]>([]);
+  const [shownNotificationIds, setShownNotificationIds] = useState<number[]>([]);
 
   const loadTasks = useCallback(async () => {
     const response = await api.get("/child/tasks");
-    setTasks(response.data.data);
-  }, []);
+    setData(response.data.data);
+    await refreshUser();
+  }, [refreshUser]);
 
   useFocusEffect(
     useCallback(() => {
@@ -122,7 +160,10 @@ export default function ChildTasksScreen() {
       });
 
       const updatedTask = response.data.data as ChildTask;
-      setTasks((current) => current.map((item) => (item.id === updatedTask.id ? updatedTask : item)));
+      setData((current) => ({
+        ...current,
+        tasks: current.tasks.map((item) => (item.id === updatedTask.id ? updatedTask : item)),
+      }));
     } catch (error) {
       console.log("Failed to update task validation request", error);
       Alert.alert("Action failed", "The task status could not be updated.");
@@ -131,18 +172,40 @@ export default function ChildTasksScreen() {
     }
   }, []);
 
+  const claimBonus = useCallback(async () => {
+    try {
+      await api.post("/child/bonus/claim");
+      await loadTasks();
+    } catch (error: any) {
+      Alert.alert("Claim failed", error?.response?.data?.message ?? "The daily bonus could not be claimed.");
+    }
+  }, [loadTasks]);
+
   const groupedTasks = useMemo(() => {
     const today = new Date();
     const groups = new Map<GroupKey, ChildTask[]>();
     order.forEach((key) => groups.set(key, []));
 
-    tasks.forEach((task) => {
+    data.tasks.forEach((task) => {
       const key = getGroupKey(task.startDate, task.endDate, today);
       groups.set(key, [...(groups.get(key) ?? []), task]);
     });
 
     return groups;
-  }, [tasks]);
+  }, [data.tasks]);
+
+  useEffect(() => {
+    const unseen = data.notifications.filter((notification) => !shownNotificationIds.includes(notification.id));
+    if (unseen.length === 0) {
+      return;
+    }
+
+    unseen.forEach((notification) => {
+      Alert.alert(notification.title, notification.message);
+    });
+
+    setShownNotificationIds((current) => [...current, ...unseen.map((notification) => notification.id)]);
+  }, [data.notifications, shownNotificationIds]);
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
@@ -181,11 +244,16 @@ export default function ChildTasksScreen() {
             >
               <View style={s.groupHeader}>
                 <Text style={[s.sectionTitle, { color: theme.colors.text }]}>{groupKey}</Text>
-                {items.length > 0 ? (
-                  <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
-                    <Text style={s.countBadgeText}>{items.length}</Text>
-                  </View>
-                ) : null}
+                <View style={s.groupHeaderRight}>
+                  {groupKey === "Today" ? (
+                    <BonusStatusBadge bonus={data.dailyBonus} onClaim={claimBonus} compact />
+                  ) : null}
+                  {items.length > 0 ? (
+                    <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
+                      <Text style={s.countBadgeText}>{items.length}</Text>
+                    </View>
+                  ) : null}
+                </View>
               </View>
 
               {items.length === 0 ? (
@@ -321,6 +389,11 @@ const s = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: "800",
+  },
+  groupHeaderRight: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   countBadge: {
     minWidth: 32,

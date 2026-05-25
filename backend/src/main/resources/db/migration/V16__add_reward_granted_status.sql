@@ -1,0 +1,5 @@
+ALTER TABLE child_assigned_rewards
+    ADD COLUMN IF NOT EXISTS granted BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE child_assigned_rewards
+    ADD COLUMN IF NOT EXISTS granted_at TIMESTAMP NULL;

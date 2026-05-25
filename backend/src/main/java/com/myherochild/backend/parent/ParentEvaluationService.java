@@ -1,5 +1,6 @@
 package com.myherochild.backend.parent;
 
+import com.myherochild.backend.child.ChildDailyBonusService;
 import com.myherochild.backend.child.ChildNotification;
 import com.myherochild.backend.child.ChildNotificationRepository;
 import com.myherochild.backend.common.exception.BusinessException;
@@ -27,6 +28,7 @@ public class ParentEvaluationService {
     private final ChildNotificationRepository childNotificationRepository;
     private final UserLevelService userLevelService;
     private final ParentAssignedTaskStatusService parentAssignedTaskStatusService;
+    private final ChildDailyBonusService childDailyBonusService;
 
     public List<ParentEvaluationChildResponse> getPendingTasks(String username) {
         User parent = getParent(username);
@@ -104,6 +106,7 @@ public class ParentEvaluationService {
         task.setCompletionRequested(false);
         task.setCompletionRequestedAt(null);
         parentAssignedTaskRepository.save(task);
+        childDailyBonusService.handleApprovedTask(task);
     }
 
     public void rejectTask(String username, Long taskId) {
@@ -124,6 +127,7 @@ public class ParentEvaluationService {
         task.setCompletionRequested(false);
         task.setCompletionRequestedAt(null);
         parentAssignedTaskRepository.save(task);
+        childDailyBonusService.handleRejectedTask(task);
     }
 
     private void createNotification(User child, String type, String title, String message) {

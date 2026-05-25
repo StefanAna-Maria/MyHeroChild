@@ -1,18 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Alert,
-  Image,
-  Pressable,
-  RefreshControl,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
-import { useFocusEffect } from "expo-router";
+import { Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../components/AppHeader";
-import { getRewardImage } from "../../constants/rewardImages";
+import BonusStatusBadge from "../../components/BonusStatusBadge";
 import { useUser } from "../../src/context/UserContext";
 import { api } from "../../src/services/api";
 import { useTheme } from "../../src/context/ThemeContext";
@@ -28,21 +19,21 @@ type HomeTask = {
   completionRequested: boolean;
 };
 
-type HomeReward = {
-  id: number;
-  title: string;
-  price: number;
-  type: string;
-  startDate: string;
-  endDate: string;
-  claimed: boolean;
-};
-
 type HomeData = {
   todaysTasks: HomeTask[];
-  rewardShop: HomeReward[];
-  myRewards: HomeReward[];
-  wishlist: string[];
+  dailyBonus: {
+    rewardPoints: number;
+    totalTasks: number;
+    approvedTasks: number;
+    progress: number;
+    claimable: boolean;
+    claimed: boolean;
+    restricted: boolean;
+    restrictedUntil?: string | null;
+  };
+  rewardShop: { id: number }[];
+  myRewards: { id: number }[];
+  wishlist: { id: number }[] | string[];
   notifications: {
     id: number;
     type: string;
@@ -53,11 +44,37 @@ type HomeData = {
 
 const formatRange = (startDate: string, endDate: string) => `${startDate} - ${endDate}`;
 
+const homeShortcuts = [
+  {
+    key: "all-tasks",
+    title: "Check All Tasks",
+    subtitle: "Open the full tasks page and review everything assigned to you.",
+    route: "/(child)/tasks",
+  },
+  {
+    key: "rewards",
+    title: "Buy&Claim Rewards",
+    subtitle: "Go to the rewards page to shop, check your rewards, and open wishlist.",
+    route: "/(child)/rewards",
+  },
+];
+
 export default function ChildHome() {
   const theme = useTheme();
+  const router = useRouter();
   const { refreshUser } = useUser();
   const [data, setData] = useState<HomeData>({
     todaysTasks: [],
+    dailyBonus: {
+      rewardPoints: 100,
+      totalTasks: 0,
+      approvedTasks: 0,
+      progress: 0,
+      claimable: false,
+      claimed: false,
+      restricted: false,
+      restrictedUntil: null,
+    },
     rewardShop: [],
     myRewards: [],
     wishlist: [],
@@ -86,6 +103,15 @@ export default function ChildHome() {
       await loadHome();
     } finally {
       setRefreshing(false);
+    }
+  }, [loadHome]);
+
+  const claimBonus = useCallback(async () => {
+    try {
+      await api.post("/child/bonus/claim");
+      await loadHome();
+    } catch (error: any) {
+      Alert.alert("Claim failed", error?.response?.data?.message ?? "The daily bonus could not be claimed.");
     }
   }, [loadHome]);
 
@@ -147,7 +173,7 @@ export default function ChildHome() {
         <View style={s.sectionHeader}>
           <Text style={[s.pageTitle, { color: theme.colors.text }]}>Home</Text>
           <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
-            Check today&apos;s missions, browse rewards and keep track of your favorites.
+            Check today&apos;s missions and jump straight to the reward section you need.
           </Text>
         </View>
 
@@ -160,7 +186,10 @@ export default function ChildHome() {
             },
           ]}
         >
-          <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Today&apos;s Tasks</Text>
+          <View style={s.todayHeaderRow}>
+            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Today&apos;s Tasks</Text>
+            <BonusStatusBadge bonus={data.dailyBonus} onClaim={claimBonus} />
+          </View>
 
           {data.todaysTasks.length === 0 ? (
             <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
@@ -255,123 +284,28 @@ export default function ChildHome() {
           )}
         </View>
 
-        <View
-          style={[
-            s.sectionCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
-          <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Reward Shop</Text>
+        {homeShortcuts.map((shortcut) => (
+          <Pressable
+            key={shortcut.key}
+            onPress={() => router.push(shortcut.route as never)}
+            style={[
+              s.shortcutCard,
+              {
+                backgroundColor: theme.colors.surface,
+                borderColor: theme.colors.border,
+              },
+            ]}
+          >
+            <View style={s.shortcutTextWrap}>
+              <Text style={[s.sectionTitle, { color: theme.colors.text }]}>{shortcut.title}</Text>
+              <Text style={[s.shortcutSubtitle, { color: theme.colors.textMuted }]}>
+                {shortcut.subtitle}
+              </Text>
+            </View>
 
-          {data.rewardShop.length === 0 ? (
-            <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
-              No rewards are active for today.
-            </Text>
-          ) : (
-            data.rewardShop.map((reward) => (
-              <View
-                key={reward.id}
-                style={[s.rewardCard, { backgroundColor: theme.colors.surfaceAlt }]}
-              >
-                <Image source={getRewardImage(reward.type)} style={s.rewardImage} />
-
-                <View style={s.rewardContent}>
-                  <Text style={[s.rewardTitle, { color: theme.colors.text }]}>{reward.title}</Text>
-
-                  <View style={s.rewardBottomRow}>
-                    <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
-                      <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                        {reward.type || "Reward"}
-                      </Text>
-                    </View>
-
-                    <View style={s.metricItem}>
-                      <Text style={[s.metricValue, { color: theme.colors.text }]}>{reward.price}</Text>
-                      <Image
-                        source={require("../../assets/icons/reward_points.png")}
-                        style={s.metricIcon}
-                      />
-                    </View>
-                  </View>
-                </View>
-              </View>
-            ))
-          )}
-        </View>
-
-        <View
-          style={[
-            s.sectionCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
-          <Text style={[s.sectionTitle, { color: theme.colors.text }]}>My Rewards</Text>
-
-          {data.myRewards.length === 0 ? (
-            <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
-              Your claimed rewards will appear here.
-            </Text>
-          ) : (
-            data.myRewards.map((reward) => (
-              <View
-                key={reward.id}
-                style={[s.rewardCard, { backgroundColor: theme.colors.surfaceAlt }]}
-              >
-                <Image source={getRewardImage(reward.type)} style={s.rewardImage} />
-
-                <View style={s.rewardContent}>
-                  <Text style={[s.rewardTitle, { color: theme.colors.text }]}>{reward.title}</Text>
-
-                  <View style={s.rewardBottomRow}>
-                    <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
-                      <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                        {reward.type || "Reward"}
-                      </Text>
-                    </View>
-
-                    <View style={s.metricItem}>
-                      <Text style={[s.metricValue, { color: theme.colors.text }]}>{reward.price}</Text>
-                      <Image
-                        source={require("../../assets/icons/reward_points.png")}
-                        style={s.metricIcon}
-                      />
-                    </View>
-                  </View>
-                </View>
-              </View>
-            ))
-          )}
-        </View>
-
-        <View
-          style={[
-            s.sectionCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
-          <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Wishlist</Text>
-
-          {data.wishlist.length === 0 ? (
-            <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
-              Your wishlist is empty for now.
-            </Text>
-          ) : (
-            data.wishlist.map((item) => (
-              <View key={item} style={[s.wishlistItem, { backgroundColor: theme.colors.surfaceAlt }]}>
-                <Text style={[s.wishlistText, { color: theme.colors.text }]}>{item}</Text>
-              </View>
-            ))
-          )}
-        </View>
+            <Text style={[s.shortcutOpenText, { color: theme.colors.primary }]}>Open</Text>
+          </Pressable>
+        ))}
       </ScrollView>
     </View>
   );
@@ -406,6 +340,12 @@ const s = StyleSheet.create({
   sectionTitle: {
     fontSize: 22,
     fontWeight: "800",
+  },
+  todayHeaderRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    justifyContent: "space-between",
+    gap: 12,
   },
   emptyText: {
     fontSize: 15,
@@ -491,40 +431,25 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
-  rewardCard: {
-    borderRadius: 18,
-    padding: 14,
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-  },
-  rewardImage: {
-    width: 58,
-    height: 58,
-    borderRadius: 29,
-    resizeMode: "cover",
-  },
-  rewardContent: {
-    flex: 1,
-    gap: 8,
-  },
-  rewardTitle: {
-    fontSize: 17,
-    fontWeight: "800",
-  },
-  rewardBottomRow: {
+  shortcutCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    padding: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    gap: 12,
+    gap: 16,
   },
-  wishlistItem: {
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+  shortcutTextWrap: {
+    flex: 1,
+    gap: 6,
   },
-  wishlistText: {
-    fontSize: 16,
-    fontWeight: "600",
+  shortcutSubtitle: {
+    fontSize: 15,
+    lineHeight: 22,
+  },
+  shortcutOpenText: {
+    fontSize: 14,
+    fontWeight: "800",
   },
 });
