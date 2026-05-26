@@ -5,6 +5,7 @@ import com.myherochild.backend.common.exception.BusinessException;
 import com.myherochild.backend.parent.ParentAssignedTask;
 import com.myherochild.backend.parent.ParentAssignedTaskRepository;
 import com.myherochild.backend.user.User;
+import com.myherochild.backend.user.UserPointsHistoryService;
 import com.myherochild.backend.user.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -22,6 +23,7 @@ public class ChildDailyBonusService {
     private final ParentAssignedTaskRepository parentAssignedTaskRepository;
     private final ChildNotificationRepository childNotificationRepository;
     private final UserRepository userRepository;
+    private final UserPointsHistoryService userPointsHistoryService;
 
     public ChildDailyBonusResponse getDailyBonus(User child) {
         LocalDate today = LocalDate.now();
@@ -80,6 +82,15 @@ public class ChildDailyBonusService {
 
         child.setRewardPoints(child.getRewardPoints() + STANDARD_BONUS_REWARD_POINTS);
         userRepository.save(child);
+        userPointsHistoryService.record(
+                child,
+                "DAILY_BONUS_CLAIMED",
+                "DAILY_BONUS",
+                null,
+                0,
+                STANDARD_BONUS_REWARD_POINTS,
+                "Claimed the daily bonus and earned " + STANDARD_BONUS_REWARD_POINTS + " reward points."
+        );
 
         state.setClaimed(true);
         state.setClaimedAt(now);

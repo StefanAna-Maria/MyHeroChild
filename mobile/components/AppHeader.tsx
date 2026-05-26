@@ -6,7 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../src/context/ThemeContext";
 import { useUser } from "../src/context/UserContext";
 import { useAuth } from "../src/auth/AuthContext";
-import { avatars, AvatarType } from "../constants/avatars";
+import { getAvatarSource } from "../constants/avatars";
 import AvatarPicker from "./AvatarPicker";
 import { api } from "../src/services/api";
 
@@ -28,7 +28,6 @@ export default function AppHeader() {
     nextLevelMinTotalXp == null ? 0 : Math.max(nextLevelMinTotalXp - currentLevelMinTotalXp, 1);
 
   const openAvatarSelector = () => {
-    console.log("Open avatar selector");
     setAvatarPickerVisible(true);
   };
 
@@ -106,12 +105,17 @@ export default function AppHeader() {
           ) : null}
 
           <View style={s.identityRow}>
-            <Pressable onPress={openAvatarSelector}>
-              <Image
-                source={avatars[user.avatar as AvatarType]}
-                style={s.avatar}
-              />
+            <Pressable
+              onPress={openAvatarSelector}
+              style={[s.avatarToggleButton, { backgroundColor: theme.colors.surfaceAlt }]}
+            >
+              <Ionicons name="caret-down" size={14} color={theme.colors.text} />
             </Pressable>
+
+            <Image
+              source={getAvatarSource(user.avatar)}
+              style={s.avatar}
+            />
 
             <Text style={[s.username, { color: theme.colors.text }]}>
               {username}
@@ -153,6 +157,9 @@ export default function AppHeader() {
         <AvatarPicker
             visible={avatarPickerVisible}
             onClose={() => setAvatarPickerVisible(false)}
+            placement="left"
+            currentAvatar={user.avatar}
+            options={user.avatarOptions}
             onSelect={ async (avatar) => {
                 try {
                   await api.patch("/users/me/avatar", { avatar });
@@ -163,7 +170,14 @@ export default function AppHeader() {
                   setAvatarPickerVisible(false);
                 }
             }}
-            
+            onClaim={async (avatar) => {
+              try {
+                await api.post(`/users/me/avatars/${avatar}/claim`);
+                await refreshUser();
+              } catch (e) {
+                console.log("Avatar claim failed", e);
+              }
+            }}
         />
 
     </View>
@@ -188,6 +202,14 @@ const s = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
+  },
+
+  avatarToggleButton: {
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
 
   avatar: {

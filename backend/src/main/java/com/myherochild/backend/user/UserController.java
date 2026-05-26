@@ -7,10 +7,12 @@ import com.myherochild.backend.parent.ParentProfileService;
 import com.myherochild.backend.user.dto.UpdateUserProfileRequest;
 import com.myherochild.backend.user.dto.UpdateUserProfileResponse;
 import com.myherochild.backend.user.dto.UserMeResponse;
+import com.myherochild.backend.user.dto.UserPointsHistoryEntryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -21,6 +23,8 @@ public class UserController {
     private final UserRepository userRepository;
     private final ParentProfileService parentProfileService;
     private final UserLevelService userLevelService;
+    private final UserAvatarService userAvatarService;
+    private final UserPointsHistoryService userPointsHistoryService;
 
     // GET CURRENT USER (folosit de frontend pentru header)
     @GetMapping("/me")
@@ -34,17 +38,7 @@ public class UserController {
         User syncedUser = userLevelService.syncLevel(user);
         LevelProgress progress = userLevelService.resolveProgress(syncedUser.getXp());
 
-        UserMeResponse response = UserMeResponse.builder()
-                .username(syncedUser.getUsername())
-                .email(syncedUser.getEmail())
-                .role(syncedUser.getRole())
-                .level(syncedUser.getLevel())
-                .xp(syncedUser.getXp())
-                .currentLevelMinTotalXp(progress.getCurrentLevelMinTotalXp())
-                .nextLevelMinTotalXp(progress.getNextLevelMinTotalXp())
-                .rewardPoints(syncedUser.getRewardPoints())
-                .avatar(syncedUser.getAvatar())
-                .build();
+        UserMeResponse response = buildUserMeResponse(syncedUser, progress);
 
         return ApiResponse.success("User fetched successfully", response);
     }
@@ -72,13 +66,59 @@ public class UserController {
 
         String avatar = body.get("avatar");
 
-        if (avatar == null || avatar.isBlank()) {
-            throw new RuntimeException("Avatar is required");
-        }
+        userAvatarService.validateSelectableOrCurrent(user, avatar);
 
         user.setAvatar(avatar);
         userRepository.save(user);
 
         return ApiResponse.success("Avatar updated successfully", null);
+    }
+
+    @PostMapping("/me/avatars/{avatarKey}/claim")
+    public ApiResponse<UserMeResponse> claimAvatar(
+            Authentication authentication,
+            @PathVariable String avatarKey
+    ) {
+        String username = authentication.getName();
+
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        User syncedUser = userLevelService.syncLevel(user);
+        userAvatarService.claimAvatar(syncedUser, avatarKey);
+
+        User refreshedUser = userRepository.findById(syncedUser.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+        LevelProgress progress = userLevelService.resolveProgress(refreshedUser.getXp());
+
+        return ApiResponse.success(
+                "Avatar claimed successfully",
+                buildUserMeResponse(refreshedUser, progress)
+        );
+    }
+
+    @GetMapping("/me/points-history")
+    public ApiResponse<List<UserPointsHistoryEntryResponse>> getCurrentUserPointsHistory(
+            Authentication authentication
+    ) {
+        return ApiResponse.success(
+                "Points history fetched successfully",
+                userPointsHistoryService.getCurrentUserHistory(authentication.getName())
+        );
+    }
+
+    private UserMeResponse buildUserMeResponse(User user, LevelProgress progress) {
+        return UserMeResponse.builder()
+                .username(user.getUsername())
+                .email(user.getEmail())
+                .role(user.getRole())
+                .level(user.getLevel())
+                .xp(user.getXp())
+                .currentLevelMinTotalXp(progress.getCurrentLevelMinTotalXp())
+                .nextLevelMinTotalXp(progress.getNextLevelMinTotalXp())
+                .rewardPoints(user.getRewardPoints())
+                .avatar(user.getAvatar())
+                .avatarOptions(userAvatarService.getAvatarOptions(user))
+                .build();
     }
 }

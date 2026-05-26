@@ -5,6 +5,8 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 
+import java.util.List;
+
 @Data
 @AllArgsConstructor
 @Builder
@@ -19,4 +21,5 @@ public class UserMeResponse {
     private Integer nextLevelMinTotalXp;
     private int rewardPoints;
     private String avatar;
+    private List<UserAvatarOptionResponse> avatarOptions;
 }

@@ -9,6 +9,7 @@ import com.myherochild.backend.level.UserLevelService;
 import com.myherochild.backend.parent.dto.ParentEvaluationChildResponse;
 import com.myherochild.backend.parent.dto.ParentEvaluationTaskResponse;
 import com.myherochild.backend.user.User;
+import com.myherochild.backend.user.UserPointsHistoryService;
 import com.myherochild.backend.user.UserRepository;
 import com.myherochild.backend.user.UserRole;
 import lombok.RequiredArgsConstructor;
@@ -29,6 +30,7 @@ public class ParentEvaluationService {
     private final UserLevelService userLevelService;
     private final ParentAssignedTaskStatusService parentAssignedTaskStatusService;
     private final ChildDailyBonusService childDailyBonusService;
+    private final UserPointsHistoryService userPointsHistoryService;
 
     public List<ParentEvaluationChildResponse> getPendingTasks(String username) {
         User parent = getParent(username);
@@ -81,6 +83,16 @@ public class ParentEvaluationService {
         userRepository.save(child);
 
         User leveledChild = userLevelService.syncLevel(child);
+        userPointsHistoryService.record(
+                leveledChild,
+                "TASK_APPROVED",
+                "ASSIGNED_TASK",
+                task.getId(),
+                task.getXp(),
+                task.getRewardPoints(),
+                "Earned " + task.getXp() + " XP and " + task.getRewardPoints()
+                        + " reward points from approved task \"" + task.getTitle() + "\"."
+        );
 
         createNotification(
                 leveledChild,

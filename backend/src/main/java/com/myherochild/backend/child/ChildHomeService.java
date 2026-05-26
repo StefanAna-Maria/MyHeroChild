@@ -19,6 +19,7 @@ import com.myherochild.backend.parent.ParentAssignedTask;
 import com.myherochild.backend.parent.ParentAssignedTaskRepository;
 import com.myherochild.backend.parent.ParentAssignedTaskStatusService;
 import com.myherochild.backend.user.User;
+import com.myherochild.backend.user.UserPointsHistoryService;
 import com.myherochild.backend.user.UserRepository;
 import com.myherochild.backend.user.UserRole;
 import jakarta.transaction.Transactional;
@@ -41,6 +42,7 @@ public class ChildHomeService {
     private final ParentAssignedRewardStatusService parentAssignedRewardStatusService;
     private final ChildDailyBonusService childDailyBonusService;
     private final ChildWishlistRewardRepository childWishlistRewardRepository;
+    private final UserPointsHistoryService userPointsHistoryService;
 
     public ChildHomeResponse getHome(String username) {
         User child = getChild(username);
@@ -214,6 +216,15 @@ public class ChildHomeService {
 
         child.setRewardPoints(child.getRewardPoints() - reward.getPrice());
         userRepository.save(child);
+        userPointsHistoryService.record(
+                child,
+                "REWARD_PURCHASED",
+                "ASSIGNED_REWARD",
+                reward.getId(),
+                0,
+                -reward.getPrice(),
+                "Spent " + reward.getPrice() + " reward points to purchase \"" + reward.getTitle() + "\"."
+        );
 
         reward.setClaimed(true);
         reward.setClaimedAt(LocalDateTime.now());

@@ -3,6 +3,14 @@ import { api } from "../services/api";
 import { useAuth } from "../auth/AuthContext";
 import { AvatarType } from "@/constants/avatars";
 
+export type UserAvatarOption = {
+  avatar: AvatarType;
+  minLevel: number;
+  unlocked: boolean;
+  claimed: boolean;
+  selectable: boolean;
+};
+
 type User = {
   username: string;
   email?: string;
@@ -13,6 +21,7 @@ type User = {
   nextLevelMinTotalXp?: number | null;
   rewardPoints: number;
   avatar: AvatarType;
+  avatarOptions: UserAvatarOption[];
 };
 
 type UserContextType = {
