@@ -7,10 +7,12 @@ import com.myherochild.backend.parent.ParentProfileService;
 import com.myherochild.backend.user.dto.UpdateUserProfileRequest;
 import com.myherochild.backend.user.dto.UpdateUserProfileResponse;
 import com.myherochild.backend.user.dto.UserMeResponse;
+import com.myherochild.backend.user.dto.UserPointsHistoryEntryResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -22,6 +24,7 @@ public class UserController {
     private final ParentProfileService parentProfileService;
     private final UserLevelService userLevelService;
     private final UserAvatarService userAvatarService;
+    private final UserPointsHistoryService userPointsHistoryService;
 
     // GET CURRENT USER (folosit de frontend pentru header)
     @GetMapping("/me")
@@ -91,6 +94,16 @@ public class UserController {
         return ApiResponse.success(
                 "Avatar claimed successfully",
                 buildUserMeResponse(refreshedUser, progress)
+        );
+    }
+
+    @GetMapping("/me/points-history")
+    public ApiResponse<List<UserPointsHistoryEntryResponse>> getCurrentUserPointsHistory(
+            Authentication authentication
+    ) {
+        return ApiResponse.success(
+                "Points history fetched successfully",
+                userPointsHistoryService.getCurrentUserHistory(authentication.getName())
         );
     }
 
