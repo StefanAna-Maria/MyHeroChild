@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Alert,
   KeyboardAvoidingView,
@@ -21,10 +21,45 @@ type ChatMessage = {
   text: string;
 };
 
+type ChildSummary = {
+  id: number;
+  username: string;
+};
+
+type ParentProfileResponse = {
+  children: ChildSummary[];
+};
+
+const parseAssistantSections = (text: string) => {
+  const sections = text
+    .split(/\n\s*\n/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+
+  if (sections.length <= 1) {
+    return [];
+  }
+
+  return sections.map((section) => {
+    const [firstLine, ...rest] = section.split("\n");
+    const normalizedTitle = firstLine
+      .replace(/^\d+\.\s*/, "")
+      .replace(/:$/, "")
+      .trim();
+
+    return {
+      title: normalizedTitle || "Suggestion",
+      body: rest.join("\n").trim() || firstLine.trim(),
+    };
+  });
+};
+
 export default function AiSuperNanny() {
   const theme = useTheme();
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
+  const [children, setChildren] = useState<ChildSummary[]>([]);
+  const [selectedChildName, setSelectedChildName] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([
     {
       id: "welcome",
@@ -33,11 +68,45 @@ export default function AiSuperNanny() {
     },
   ]);
 
-  const sendMessage = async () => {
-    const trimmed = input.trim();
+  useEffect(() => {
+    const loadChildren = async () => {
+      try {
+        const response = await api.get("/parent/profile");
+        const profile: ParentProfileResponse = response.data.data;
+        const nextChildren = profile.children ?? [];
+        setChildren(nextChildren);
+        if (nextChildren.length === 1) {
+          setSelectedChildName(nextChildren[0].username);
+        }
+      } catch {
+        setChildren([]);
+      }
+    };
+
+    loadChildren();
+  }, []);
+
+  const quickPrompts = useMemo(() => {
+    const childLabel = selectedChildName ?? "my child";
+
+    return [
+      `Suggest 3 task ideas for ${childLabel}.`,
+      `Suggest 3 rewards that would motivate ${childLabel}.`,
+      `Which task types seem too difficult for ${childLabel} right now?`,
+      `What should I add next to my catalogue for ${childLabel}?`,
+    ];
+  }, [selectedChildName]);
+
+  const sendMessage = async (overrideMessage?: string) => {
+    const trimmed = (overrideMessage ?? input).trim();
     if (!trimmed || isSending) {
       return;
     }
+
+    const finalMessage =
+      selectedChildName && !trimmed.toLowerCase().includes(selectedChildName.toLowerCase())
+        ? `This is about ${selectedChildName}. ${trimmed}`
+        : trimmed;
 
     const userMessage: ChatMessage = {
       id: `user-${Date.now()}`,
@@ -51,7 +120,7 @@ export default function AiSuperNanny() {
 
     try {
       const response = await api.post("/parent/ai/chat", {
-        message: trimmed,
+        message: finalMessage,
       });
 
       const reply = response.data?.data?.reply ?? "I could not generate a response right now.";
@@ -91,6 +160,83 @@ export default function AiSuperNanny() {
             </Text>
           </View>
 
+          {children.length > 0 ? (
+            <View style={s.sectionBlock}>
+              <Text style={[s.sectionLabel, { color: theme.colors.textMuted }]}>Choose child</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
+                <Pressable
+                  onPress={() => setSelectedChildName(null)}
+                  style={[
+                    s.childChip,
+                    {
+                      backgroundColor: selectedChildName === null
+                        ? theme.colors.primary
+                        : theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      s.childChipText,
+                      { color: selectedChildName === null ? "#FFFFFF" : theme.colors.text },
+                    ]}
+                  >
+                    All children
+                  </Text>
+                </Pressable>
+
+                {children.map((child) => {
+                  const isSelected = selectedChildName === child.username;
+
+                  return (
+                    <Pressable
+                      key={child.id}
+                      onPress={() => setSelectedChildName(child.username)}
+                      style={[
+                        s.childChip,
+                        {
+                          backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
+                          borderColor: theme.colors.border,
+                        },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          s.childChipText,
+                          { color: isSelected ? "#FFFFFF" : theme.colors.text },
+                        ]}
+                      >
+                        {child.username}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          ) : null}
+
+          <View style={s.sectionBlock}>
+            <Text style={[s.sectionLabel, { color: theme.colors.textMuted }]}>Quick suggestions</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={s.chipRow}>
+              {quickPrompts.map((prompt) => (
+                <Pressable
+                  key={prompt}
+                  onPress={() => sendMessage(prompt)}
+                  style={[
+                    s.promptChip,
+                    {
+                      backgroundColor: theme.colors.surface,
+                      borderColor: theme.colors.border,
+                    },
+                  ]}
+                >
+                  <Text style={[s.promptChipText, { color: theme.colors.text }]}>{prompt}</Text>
+                </Pressable>
+              ))}
+            </ScrollView>
+          </View>
+
           <ScrollView
             contentContainerStyle={s.messagesWrap}
             style={s.flex}
@@ -98,6 +244,7 @@ export default function AiSuperNanny() {
           >
             {messages.map((message) => {
               const isUser = message.role === "user";
+              const sections = isUser ? [] : parseAssistantSections(message.text);
 
               return (
                 <View
@@ -121,6 +268,30 @@ export default function AiSuperNanny() {
                   >
                     {message.text}
                   </Text>
+
+                  {!isUser && sections.length > 1 ? (
+                    <View style={s.responseCardsWrap}>
+                      {sections.map((section) => (
+                        <View
+                          key={`${message.id}-${section.title}`}
+                          style={[
+                            s.responseCard,
+                            {
+                              backgroundColor: theme.colors.surfaceAlt,
+                              borderColor: theme.colors.border,
+                            },
+                          ]}
+                        >
+                          <Text style={[s.responseCardTitle, { color: theme.colors.text }]}>
+                            {section.title}
+                          </Text>
+                          <Text style={[s.responseCardText, { color: theme.colors.textMuted }]}>
+                            {section.body}
+                          </Text>
+                        </View>
+                      ))}
+                    </View>
+                  ) : null}
                 </View>
               );
             })}
@@ -150,7 +321,7 @@ export default function AiSuperNanny() {
             />
 
             <Pressable
-              onPress={sendMessage}
+              onPress={() => sendMessage()}
               disabled={isSending}
               style={[
                 s.sendButton,
@@ -192,16 +363,52 @@ const s = StyleSheet.create({
     fontSize: 15,
     lineHeight: 22,
   },
+  sectionBlock: {
+    gap: 8,
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  chipRow: {
+    gap: 10,
+    paddingRight: 12,
+  },
+  childChip: {
+    borderWidth: 1,
+    borderRadius: 999,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+  },
+  childChipText: {
+    fontSize: 14,
+    fontWeight: "800",
+  },
+  promptChip: {
+    borderWidth: 1,
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    maxWidth: 260,
+  },
+  promptChipText: {
+    fontSize: 14,
+    fontWeight: "700",
+    lineHeight: 20,
+  },
   messagesWrap: {
     gap: 12,
     paddingBottom: 8,
   },
   messageBubble: {
-    maxWidth: "88%",
+    maxWidth: "92%",
     paddingHorizontal: 14,
     paddingVertical: 12,
     borderRadius: 18,
     borderWidth: 1,
+    gap: 12,
   },
   userBubbleAlign: {
     alignSelf: "flex-end",
@@ -214,6 +421,23 @@ const s = StyleSheet.create({
   messageText: {
     fontSize: 15,
     lineHeight: 22,
+  },
+  responseCardsWrap: {
+    gap: 10,
+  },
+  responseCard: {
+    borderWidth: 1,
+    borderRadius: 16,
+    padding: 12,
+    gap: 6,
+  },
+  responseCardTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  responseCardText: {
+    fontSize: 14,
+    lineHeight: 21,
   },
   inputBar: {
     borderWidth: 1,
