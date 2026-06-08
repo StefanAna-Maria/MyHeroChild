@@ -12,6 +12,7 @@ import { useFocusEffect, useRouter } from "expo-router";
 import { api } from "@/src/services/api";
 import { useTheme } from "@/src/context/ThemeContext";
 import AppHeader from "@/components/AppHeader";
+import CurvedScreenBody from "@/components/CurvedScreenBody";
 
 type PackageListItem = {
   id: number;
@@ -64,11 +65,12 @@ export default function Packages() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
-      <FlatList
-        data={packages}
-        keyExtractor={(item) => item.id.toString()}
-        contentContainerStyle={s.content}
-        renderItem={({ item }) => (
+      <CurvedScreenBody>
+        <FlatList
+          data={packages}
+          keyExtractor={(item) => item.id.toString()}
+          contentContainerStyle={s.content}
+          renderItem={({ item }) => (
           <Pressable
             onPress={() => router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}`)}
             style={[
@@ -137,16 +139,17 @@ export default function Packages() {
               </View>
             </View>
           </Pressable>
-        )}
-        ListFooterComponent={
-          <Pressable
-            style={[s.addBtn, { backgroundColor: theme.colors.primary }]}
-            onPress={() => router.push("/(admin)/packages/_screens/package-create")}
-          >
-            <Text style={s.addText}>+ Add New Package</Text>
-          </Pressable>
-        }
-      />
+          )}
+          ListFooterComponent={
+            <Pressable
+              style={[s.addBtn, { backgroundColor: theme.colors.primary }]}
+              onPress={() => router.push("/(admin)/packages/_screens/package-create")}
+            >
+              <Text style={s.addText}>+ Add New Package</Text>
+            </Pressable>
+          }
+        />
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -157,6 +160,7 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 18,
     paddingBottom: 32,
     gap: 14,
   },

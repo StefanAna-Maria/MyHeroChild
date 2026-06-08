@@ -12,6 +12,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 
 import AppHeader from "../../../components/AppHeader";
+import CurvedScreenBody from "../../../components/CurvedScreenBody";
 import { formatItemTypeLabel } from "../../../constants/itemTypes";
 import { getRewardImage } from "../../../constants/rewardImages";
 import { api } from "../../../src/services/api";
@@ -139,16 +140,17 @@ export default function ChildRewardsPage() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.primary}
-          />
-        }
-      >
+      <CurvedScreenBody>
+        <ScrollView
+          contentContainerStyle={s.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
+          }
+        >
         <View style={s.pageHeader}>
           <Text style={[s.pageTitle, { color: theme.colors.text }]}>Rewards</Text>
           <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
@@ -311,7 +313,8 @@ export default function ChildRewardsPage() {
             <Text style={[s.openLinkText, { color: theme.colors.primary }]}>Open</Text>
           </View>
         </Pressable>
-      </ScrollView>
+        </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -322,6 +325,7 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 18,
     paddingBottom: 32,
     gap: 16,
   },

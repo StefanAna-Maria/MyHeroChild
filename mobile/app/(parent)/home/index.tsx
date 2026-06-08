@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import AppHeader from "../../../components/AppHeader";
+import CurvedScreenBody from "../../../components/CurvedScreenBody";
 import { api } from "../../../src/services/api";
 import { useTheme } from "../../../src/context/ThemeContext";
 
@@ -69,6 +70,7 @@ export default function ParentHomeIndex() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
+      <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
         <Text style={[s.pageTitle, { color: theme.colors.text }]}>My Catalogue</Text>
         <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
@@ -116,6 +118,7 @@ export default function ParentHomeIndex() {
           );
         })}
       </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -126,6 +129,7 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 18,
     paddingBottom: 32,
     gap: 14,
   },

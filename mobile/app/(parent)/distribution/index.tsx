@@ -3,6 +3,7 @@ import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-nati
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../../components/AppHeader";
+import CurvedScreenBody from "../../../components/CurvedScreenBody";
 import { avatars, AvatarType } from "../../../constants/avatars";
 import { api } from "../../../src/services/api";
 import { useTheme } from "../../../src/context/ThemeContext";
@@ -61,6 +62,7 @@ export default function DistributionIndex() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
+      <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
         <Text style={[s.pageTitle, { color: theme.colors.text }]}>Distribute</Text>
         <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
@@ -152,6 +154,7 @@ export default function DistributionIndex() {
           ))
         )}
       </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -162,6 +165,7 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 18,
     paddingBottom: 32,
     gap: 14,
   },

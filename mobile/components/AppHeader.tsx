@@ -1,4 +1,4 @@
-import { View, Text, StyleSheet, Animated, Image, Pressable, Alert } from "react-native";
+import { View, Text, StyleSheet, Animated, Image, Pressable, Alert, ImageBackground } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -9,6 +9,12 @@ import { useAuth } from "../src/auth/AuthContext";
 import { getAvatarSource } from "../constants/avatars";
 import AvatarPicker from "./AvatarPicker";
 import { api } from "../src/services/api";
+
+const headerBackgrounds = {
+  ADMIN: require("../assets/images/AdminAppHeader.png"),
+  PARENT: require("../assets/images/ParentAppHeader.png"),
+  CHILD: require("../assets/images/ChildAppHeader.png"),
+} as const;
 
 export default function AppHeader() {
 
@@ -65,6 +71,7 @@ export default function AppHeader() {
   if (!user) return null;
 
   const { username, role, level } = user;
+  const backgroundSource = headerBackgrounds[role as keyof typeof headerBackgrounds] ?? headerBackgrounds.PARENT;
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
@@ -72,10 +79,14 @@ export default function AppHeader() {
   });
 
   return (
-    <View style={[s.container, { backgroundColor: theme.colors.surface }]}>
-
+    <ImageBackground
+      source={backgroundSource}
+      resizeMode="cover"
+      style={s.container}
+      imageStyle={s.backgroundImage}
+    >
         <View style={s.topRow}>
-          {(role === "PARENT" || role === "CHILD") ? (
+          {(role === "PARENT" || role === "CHILD" || role === "ADMIN") ? (
             <Pressable
               onPress={openLogout}
               style={[s.logoutButton, { backgroundColor: theme.colors.surfaceAlt }]}
@@ -179,8 +190,7 @@ export default function AppHeader() {
               }
             }}
         />
-
-    </View>
+    </ImageBackground>
   );
 }
 
@@ -188,8 +198,14 @@ const s = StyleSheet.create({
 
   container: {
     paddingTop: 60,
-    paddingBottom: 18,
-    paddingHorizontal: 20
+    paddingBottom: 36,
+    paddingHorizontal: 20,
+    overflow: "hidden",
+  },
+
+  backgroundImage: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
 
   topRow: {
