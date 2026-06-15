@@ -6,6 +6,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useTheme } from "../src/context/ThemeContext";
 import { useUser } from "../src/context/UserContext";
 import { useAuth } from "../src/auth/AuthContext";
+import { getUsernameFromToken } from "../src/auth/jwt";
 import { getAvatarSource } from "../constants/avatars";
 import AvatarPicker from "./AvatarPicker";
 import { api } from "../src/services/api";
@@ -19,8 +20,8 @@ const headerBackgrounds = {
 export default function AppHeader() {
 
   const theme = useTheme();
-  const { user, refreshUser } = useUser();
-  const { logout } = useAuth();
+  const { user, isLoading, refreshUser } = useUser();
+  const { token, role: authRole, logout } = useAuth();
   const router = useRouter();
 
   const progressAnim = useRef(new Animated.Value(0)).current;
@@ -68,9 +69,13 @@ export default function AppHeader() {
 
   }, [nextLevelMinTotalXp, progressAnim, xpIntoCurrentLevel, xpNeededForNextLevel]);
 
-  if (!user) return null;
+  const role = user?.role ?? authRole;
+  const username = user?.username ?? (token ? getUsernameFromToken(token) : null) ?? "User";
+  const level = user?.level ?? 1;
+  const avatar = user?.avatar;
 
-  const { username, role, level } = user;
+  if (!role) return null;
+
   const backgroundSource = headerBackgrounds[role as keyof typeof headerBackgrounds] ?? headerBackgrounds.PARENT;
 
   const progressWidth = progressAnim.interpolate({
@@ -110,7 +115,7 @@ export default function AppHeader() {
                 style={s.rewardPointsIcon}
               />
               <Text style={[s.rewardPointsText, { color: theme.colors.text }]}>
-                {user.rewardPoints}
+                {user?.rewardPoints ?? 0}
               </Text>
             </View>
           ) : null}
@@ -118,13 +123,14 @@ export default function AppHeader() {
           <View style={s.identityRow}>
             <Pressable
               onPress={openAvatarSelector}
+              disabled={!user || isLoading}
               style={[s.avatarToggleButton, { backgroundColor: theme.colors.surfaceAlt }]}
             >
               <Ionicons name="caret-down" size={14} color={theme.colors.text} />
             </Pressable>
 
             <Image
-              source={getAvatarSource(user.avatar)}
+              source={getAvatarSource(avatar)}
               style={s.avatar}
             />
 
@@ -134,7 +140,7 @@ export default function AppHeader() {
           </View>
         </View>
 
-      {role === "CHILD" && (
+      {role === "CHILD" && user && (
 
         <View style={s.progressSection}>
 
@@ -169,8 +175,8 @@ export default function AppHeader() {
             visible={avatarPickerVisible}
             onClose={() => setAvatarPickerVisible(false)}
             placement="left"
-            currentAvatar={user.avatar}
-            options={user.avatarOptions}
+            currentAvatar={user?.avatar ?? "robot"}
+            options={user?.avatarOptions ?? []}
             onSelect={ async (avatar) => {
                 try {
                   await api.patch("/users/me/avatar", { avatar });

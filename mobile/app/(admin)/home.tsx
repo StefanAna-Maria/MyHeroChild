@@ -9,8 +9,6 @@ import {
   View,
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
-import { Ionicons } from "@expo/vector-icons";
-
 import AppHeader from "../../components/AppHeader";
 import CurvedScreenBody from "../../components/CurvedScreenBody";
 import { formatItemTypeLabel } from "../../constants/itemTypes";
@@ -35,22 +33,22 @@ type AdminHomePackage = {
   rewards: PackageReward[];
 };
 
-const taskTypeIcons: Record<string, keyof typeof Ionicons.glyphMap> = {
-  default: "sparkles-outline",
-  school_work: "school-outline",
-  reading: "book-outline",
-  hygiene: "water-outline",
-  neat_tidy: "sparkles-outline",
-  chores: "hammer-outline",
-  family_help: "people-outline",
-  responsibility: "shield-checkmark-outline",
-  respect_kindness: "heart-outline",
-  health: "fitness-outline",
-  life_skills: "construct-outline",
-  self_improvement: "trending-up-outline",
-  digital_balance: "phone-portrait-outline",
-  social_skills: "chatbubbles-outline",
-  creativity: "color-palette-outline",
+const taskTypeIcons: Record<string, any> = {
+  default: require("../../assets/icons/Homework.png"),
+  school_work: require("../../assets/icons/Homework.png"),
+  reading: require("../../assets/icons/Homework.png"),
+  hygiene: require("../../assets/icons/Hygiene.png"),
+  neat_tidy: require("../../assets/icons/NeatTidy.png"),
+  chores: require("../../assets/icons/Chores.png"),
+  family_help: require("../../assets/icons/FamilyHelp.png"),
+  responsibility: require("../../assets/icons/FamilyHelp.png"),
+  respect_kindness: require("../../assets/icons/FamilyHelp.png"),
+  health: require("../../assets/icons/Hygiene.png"),
+  life_skills: require("../../assets/icons/FamilyHelp.png"),
+  self_improvement: require("../../assets/icons/Homework.png"),
+  digital_balance: require("../../assets/icons/Homework.png"),
+  social_skills: require("../../assets/icons/FamilyHelp.png"),
+  creativity: require("../../assets/icons/Homework.png"),
 };
 
 const quickActions = [
@@ -72,9 +70,19 @@ const quickActions = [
   },
 ] as const;
 
-const getTaskTypePreview = (tasks: PackageTask[]) => {
-  const uniqueTypes = [...new Set(tasks.map((task) => task.type).filter(Boolean))];
-  return uniqueTypes.slice(0, 4);
+const getDominantTaskType = (tasks: PackageTask[]) => {
+  if (tasks.length === 0) {
+    return "default";
+  }
+
+  const counts = new Map<string, number>();
+
+  tasks.forEach((task) => {
+    const type = task.type || "default";
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  });
+
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "default";
 };
 
 export default function AdminHome() {
@@ -167,7 +175,9 @@ export default function AdminHome() {
           ) : (
             <View style={s.packageGrid}>
               {packages.map((pkg) => {
-                const previewTypes = getTaskTypePreview(pkg.tasks);
+                const dominantTaskType = getDominantTaskType(pkg.tasks);
+                const dominantTaskIcon =
+                  taskTypeIcons[dominantTaskType] ?? taskTypeIcons.default;
 
                 return (
                   <Pressable
@@ -177,40 +187,20 @@ export default function AdminHome() {
                     }
                     style={s.packageCard}
                   >
-                    <View style={s.packageIconsWrap}>
-                      {previewTypes.length > 0 ? (
-                        previewTypes.map((type, index) => (
-                          <View
-                            key={`${pkg.id}-${type}-${index}`}
-                            style={s.packageTypeIconBubble}
-                          >
-                            <Ionicons
-                              name={taskTypeIcons[type] ?? "sparkles-outline"}
-                              size={18}
-                              color="#B7F3C9"
-                            />
-                          </View>
-                        ))
-                      ) : (
-                        <View style={s.packageTypeIconBubble}>
-                          <Ionicons
-                            name="sparkles-outline"
-                            size={18}
-                            color="#B7F3C9"
-                          />
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={s.packageTitleRow}>
-                      <Text numberOfLines={2} style={s.packageTitle}>
-                        {pkg.title}
-                      </Text>
+                    <View style={s.packageTopVisualRow}>
+                      <View style={s.packageTypeIconBubble}>
+                        <Image source={dominantTaskIcon} style={s.packageTypeIconImage} />
+                      </View>
 
                       <View style={s.ageBadge}>
-                        <Text style={s.ageBadgeText}>Ages:{pkg.ageGroup}</Text>
+                        <Text style={s.ageBadgeText}>Ages:</Text>
+                        <Text style={s.ageBadgeValue}>{pkg.ageGroup}</Text>
                       </View>
                     </View>
+
+                    <Text numberOfLines={2} style={s.packageTitle}>
+                      {pkg.title}
+                    </Text>
 
                     <View style={s.packageFooterRow}>
                       <View style={[s.packageMetricPill, s.tasksPill]}>
@@ -222,9 +212,9 @@ export default function AdminHome() {
                       </View>
                     </View>
 
-                    {previewTypes.length > 0 ? (
+                    {pkg.tasks.length > 0 ? (
                       <Text numberOfLines={1} style={s.packageTypeSummary}>
-                        {previewTypes.map((type) => formatItemTypeLabel(type)).join(" • ")}
+                        {formatItemTypeLabel(dominantTaskType)}
                       </Text>
                     ) : null}
                   </Pressable>
@@ -344,47 +334,51 @@ const s = StyleSheet.create({
     minHeight: 228,
     gap: 10,
   },
-  packageIconsWrap: {
+  packageTopVisualRow: {
     flexDirection: "row",
-    flexWrap: "wrap",
-    gap: 8,
-    minHeight: 78,
-    alignContent: "flex-start",
+    alignItems: "center",
+    gap: 12,
   },
   packageTypeIconBubble: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
+    width: 74,
+    height: 74,
+    borderRadius: 18,
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#14323E",
   },
-  packageTitleRow: {
-    flexDirection: "row",
-    alignItems: "flex-start",
-    justifyContent: "space-between",
-    gap: 8,
+  packageTypeIconImage: {
+    width: 56,
+    height: 56,
+    resizeMode: "contain",
   },
   packageTitle: {
     color: "#F8FAFC",
     fontSize: 16,
     fontWeight: "800",
     lineHeight: 21,
-    flex: 1,
     textTransform: "uppercase",
   },
   ageBadge: {
     borderRadius: 999,
     paddingHorizontal: 10,
-    paddingVertical: 6,
+    paddingVertical: 7,
     backgroundColor: "#D8B2FF",
-    marginTop: 2,
-    flexShrink: 0,
+    alignSelf: "center",
+    minWidth: 58,
+    alignItems: "center",
   },
   ageBadgeText: {
     color: "#33214A",
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: "700",
+    lineHeight: 12,
+  },
+  ageBadgeValue: {
+    color: "#33214A",
+    fontSize: 11,
+    fontWeight: "800",
+    lineHeight: 13,
   },
   packageFooterRow: {
     flexDirection: "row",
