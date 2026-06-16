@@ -1,4 +1,4 @@
-import { ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../../components/AppHeader";
@@ -49,8 +49,9 @@ export default function ParentHomeIndex() {
         <View style={s.heroBlock}>
           <Text style={[s.heroTitle, { color: theme.colors.text }]}>Welcome back, Parent!</Text>
           <Text style={[s.heroSubtitle, { color: theme.colors.textMuted }]}>
-            Guide your family with intention. Discover ready-made packages, manage your catalogue,
-            assign meaningful activities, and ask AI SuperNanny for tailored ideas.
+            Bring a little more joy, structure, and motivation into your family&apos;s routine.
+            Discover inspiring packages, organize your catalogue, manage your children&apos;s
+            activities, and ask AI SuperNanny for thoughtful support whenever you need it.
           </Text>
         </View>
 
@@ -79,6 +80,13 @@ export default function ParentHomeIndex() {
             </Pressable>
           ))}
         </View>
+
+        <View style={[s.footerIllustrationCard, { backgroundColor: theme.colors.background }]}>
+          <Image
+            source={require("../../../assets/images/ParentHomePage_cutout.png")}
+            style={s.footerImage}
+          />
+        </View>
       </ScrollView>
       </CurvedScreenBody>
     </View>
@@ -99,12 +107,13 @@ const s = StyleSheet.create({
     gap: 8,
   },
   heroTitle: {
-    fontSize: 30,
+    fontSize: 34,
     fontWeight: "800",
+    lineHeight: 40,
   },
   heroSubtitle: {
-    fontSize: 16,
-    lineHeight: 24,
+    fontSize: 18,
+    lineHeight: 27,
   },
   quickActionsGrid: {
     flexDirection: "row",
@@ -143,5 +152,23 @@ const s = StyleSheet.create({
     textShadowColor: "rgba(31, 41, 55, 0.28)",
     textShadowOffset: { width: 0, height: 2 },
     textShadowRadius: 4,
+  },
+  footerImage: {
+    width: "100%",
+    height: 180,
+    resizeMode: "contain",
+    marginTop: 6,
+  },
+  footerIllustrationCard: {
+    width: "100%",
+    minHeight: 200,
+    borderRadius: 24,
+    alignItems: "center",
+    justifyContent: "flex-end",
+    paddingHorizontal: 14,
+    paddingTop: 18,
+    paddingBottom: 8,
+    overflow: "hidden",
+    marginTop: 2,
   },
 });

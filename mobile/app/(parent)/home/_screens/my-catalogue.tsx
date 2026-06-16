@@ -11,21 +11,21 @@ import { useTheme } from "../../../../src/context/ThemeContext";
 const catalogueCards = [
   {
     key: "packages",
-    title: "Packages",
-    subtitle: "Browse saved admin packages by age group",
-    image: require("../../../../assets/rewards/family.png"),
+    title: "Saved Packages",
+    subtitle: "Browse saved packages by age group",
+    image: require("../../../../assets/images/Savedpacks.png"),
   },
   {
     key: "my-tasks",
     title: "My Tasks",
-    subtitle: "Open your custom parent tasks catalogue",
-    image: require("../../../../assets/rewards/default.png"),
+    subtitle: "Open your custom tasks and add new content",
+    image: require("../../../../assets/images/Mytasks.png"),
   },
   {
     key: "my-rewards",
     title: "My Rewards",
-    subtitle: "Open your custom parent rewards catalogue",
-    image: require("../../../../assets/rewards/mystery.png"),
+    subtitle: "Open your custom rewards and add new content",
+    image: require("../../../../assets/rewards/default.png"),
   },
 ] as const;
 
