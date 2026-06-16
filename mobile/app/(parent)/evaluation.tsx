@@ -88,7 +88,7 @@ export default function Evaluation() {
         <View style={s.header}>
           <Text style={[s.title, { color: theme.colors.text }]}>Evaluate</Text>
           <Text style={[s.subtitle, { color: theme.colors.textMuted }]}>
-            Review the tasks that your children marked as completed.
+            Review the tasks that your children claimed to have completed.
           </Text>
         </View>
 

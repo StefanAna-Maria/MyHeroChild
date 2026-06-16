@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Alert,
   Image,
+  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +12,8 @@ import {
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import CurvedScreenBody from "../../../../components/CurvedScreenBody";
 import { api } from "../../../../src/services/api";
 import { AGE_CATEGORIES } from "../../../../constants/parentCatalogue";
 import {
@@ -128,6 +131,7 @@ export default function PackageDetailScreen() {
   const { id, edit } = useLocalSearchParams<{ id: string; edit?: string }>();
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const [pkg, setPkg] = useState<PackageDetail | null>(null);
   const [draftPkg, setDraftPkg] = useState<PackageDraft | null>(null);
@@ -625,30 +629,29 @@ export default function PackageDetailScreen() {
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <View
-        style={[
-          s.topBar,
-          {
-            backgroundColor: theme.colors.surface,
-            borderBottomColor: theme.colors.border,
-          },
-        ]}
+      <ImageBackground
+        source={require("../../../../assets/images/AdminAppHeader.png")}
+        resizeMode="cover"
+        style={[s.topBar, { paddingTop: insets.top + 14 }]}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
-        >
-          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
-        </Pressable>
+        <View style={s.topBarContent}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+          >
+            <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+          </Pressable>
 
-        <View style={s.topBarText}>
-          <Text style={[s.topBarTitle, { color: theme.colors.text }]}>Package Details</Text>
-          <Text style={{ color: theme.colors.textMuted }}>
-            {isEditingPackage ? "Edit package content" : "Review package content"}
-          </Text>
+          <View style={s.topBarText}>
+            <Text style={[s.topBarTitle, { color: theme.colors.text }]}>Package Details</Text>
+            <Text style={{ color: theme.colors.textMuted }}>
+              {isEditingPackage ? "Edit package content" : "Review package content"}
+            </Text>
+          </View>
         </View>
-      </View>
+      </ImageBackground>
 
+      <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
         <View
           style={[
@@ -1302,6 +1305,7 @@ export default function PackageDetailScreen() {
           })}
         </View>
       </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -1316,13 +1320,14 @@ const s = StyleSheet.create({
     flex: 1,
   },
   topBar: {
-    paddingTop: 56,
-    paddingBottom: 18,
-    paddingHorizontal: 16,
+    paddingBottom: 34,
+    paddingHorizontal: 20,
+  },
+  topBarContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderBottomWidth: 1,
+    minHeight: 42,
   },
   backButton: {
     width: 40,
@@ -1340,6 +1345,7 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 28,
     paddingBottom: 32,
     gap: 16,
   },

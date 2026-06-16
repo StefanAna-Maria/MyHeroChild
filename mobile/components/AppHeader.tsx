@@ -133,10 +133,16 @@ export default function AppHeader() {
 
             <Image
               source={getAvatarSource(avatar)}
-              style={s.avatar}
+              style={[s.avatar, role === "CHILD" ? s.childAvatar : null]}
             />
 
-            <Text style={[s.username, { color: role === "CHILD" ? "#FFFFFF" : theme.colors.text }]}>
+            <Text
+              style={[
+                s.username,
+                role === "CHILD" ? s.childUsername : null,
+                { color: role === "CHILD" ? "#FFFFFF" : theme.colors.text },
+              ]}
+            >
               {username}
             </Text>
           </View>
@@ -240,13 +246,21 @@ const s = StyleSheet.create({
     height: 42,
     borderRadius: 21
   },
+  childAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
 
   username: {
     fontSize: 22,
     fontWeight: "800",
-    textShadowColor: "rgba(255,255,255,0.95)",
-    textShadowOffset: { width: 0, height: 0 },
-    textShadowRadius: 4,
+  },
+  childUsername: {
+    fontSize: 26,
+    textShadowColor: "rgba(31, 41, 55, 0.42)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
 
   progressSection: {
@@ -257,6 +271,9 @@ const s = StyleSheet.create({
     fontWeight: "700",
     marginBottom: 4,
     color: "#FFFFFF",
+    textShadowColor: "rgba(31, 41, 55, 0.42)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
 
   progressBarContainer: {
@@ -275,7 +292,7 @@ const s = StyleSheet.create({
   progressTextInside: {
     fontSize: 12,
     textAlign: "center",
-    color: "#FFFFFF",
+    color: "#581C87",
     fontWeight: "800",
     position: "absolute",
     width: "100%",

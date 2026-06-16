@@ -12,6 +12,8 @@ import {
   View,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import AppHeader from "../../components/AppHeader";
+import CurvedScreenBody from "../../components/CurvedScreenBody";
 import AvatarPicker from "../../components/AvatarPicker";
 import { avatars, AvatarType } from "../../constants/avatars";
 import { getRewardImage } from "../../constants/rewardImages";
@@ -239,23 +241,9 @@ export default function ParentProfile() {
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <View
-        style={[
-          s.topBar,
-          {
-            backgroundColor: theme.colors.surface,
-            borderBottomColor: theme.colors.border,
-          },
-        ]}
-      >
-        <View style={s.topBarText}>
-          <Text style={[s.topBarTitle, { color: theme.colors.text }]}>My Profile</Text>
-          <Text style={{ color: theme.colors.textMuted }}>
-            Manage your account and view your family overview
-          </Text>
-        </View>
-      </View>
+      <AppHeader />
 
+      <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
         <View
           style={[
@@ -608,6 +596,7 @@ export default function ParentProfile() {
           )}
         </View>
       </ScrollView>
+      </CurvedScreenBody>
 
       <AvatarPicker
         visible={avatarPickerVisible}
@@ -635,21 +624,9 @@ const s = StyleSheet.create({
   screen: {
     flex: 1,
   },
-  topBar: {
-    paddingTop: 56,
-    paddingBottom: 18,
-    paddingHorizontal: 16,
-    borderBottomWidth: 1,
-  },
-  topBarText: {
-    gap: 2,
-  },
-  topBarTitle: {
-    fontSize: 28,
-    fontWeight: "800",
-  },
   content: {
     padding: 16,
+    paddingTop: 18,
     paddingBottom: 32,
     gap: 16,
   },

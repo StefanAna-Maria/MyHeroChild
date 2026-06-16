@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import AppHeader from "../../../components/AppHeader";
 import CurvedScreenBody from "../../../components/CurvedScreenBody";
@@ -10,6 +10,14 @@ import {
   PackageItem,
   resolveAgeGroup,
 } from "../../../constants/parentCatalogue";
+
+const categoryBackgrounds: Record<string, any> = {
+  "3-6": require("../../../assets/backgrounds/todayTasks.png"),
+  "7-9": require("../../../assets/backgrounds/thisWeekTasks.png"),
+  "10-12": require("../../../assets/backgrounds/nextWeekTasks.png"),
+  "13-15": require("../../../assets/backgrounds/thisMonthTasks.png"),
+  "16-18": require("../../../assets/backgrounds/laterTasks.png"),
+};
 
 export default function ExploreIndex() {
   const router = useRouter();
@@ -51,20 +59,11 @@ export default function ExploreIndex() {
       <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
         <Text style={[s.pageTitle, { color: theme.colors.text }]}>Explore by Age</Text>
-        <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
-          Pick an age category to browse the packages created by admin.
-        </Text>
 
         {AGE_CATEGORIES.map((category) => (
           <Pressable
             key={category.key}
-            style={[
-              s.card,
-              {
-                backgroundColor: theme.colors.primary,
-                borderColor: theme.colors.border,
-              },
-            ]}
+            style={s.cardWrap}
             onPress={() =>
               router.push({
                 pathname: "/(parent)/explore/_screens/category",
@@ -72,22 +71,43 @@ export default function ExploreIndex() {
               })
             }
           >
-            <Image source={category.image} style={s.cardImage} />
-
-            <View style={s.cardTextWrap}>
-              <Text style={[s.cardTitle, { color: theme.colors.text }]}>
-                {category.title}
-              </Text>
-              <Text style={{ color: theme.colors.textMuted }}>{category.subtitle}</Text>
-            </View>
-
-            <View
-              style={[s.countBadge, { backgroundColor: theme.colors.tabIconActive }]}
+            <ImageBackground
+              source={categoryBackgrounds[category.key]}
+              resizeMode="cover"
+              imageStyle={s.cardBackgroundImage}
+              style={[
+                s.card,
+                {
+                  borderColor: theme.colors.border,
+                },
+              ]}
             >
-              <Text style={s.countText}>{categoryCounts.get(category.key) ?? 0}</Text>
-            </View>
+              <View style={s.cardOverlay}>
+                <Image source={category.image} style={s.cardImage} />
+
+                <View style={s.cardTextWrap}>
+                  <Text style={[s.cardTitle, { color: theme.colors.text }]}>
+                    {category.title}
+                  </Text>
+                  <Text style={{ color: theme.colors.textMuted }}>{category.subtitle}</Text>
+                </View>
+
+                <View
+                  style={[s.countBadge, { backgroundColor: theme.colors.tabIconActive }]}
+                >
+                  <Text style={s.countText}>{categoryCounts.get(category.key) ?? 0}</Text>
+                </View>
+              </View>
+            </ImageBackground>
           </Pressable>
         ))}
+
+        <Pressable
+          style={[s.catalogueButton, { backgroundColor: theme.colors.tabIconActive }]}
+          onPress={() => router.push("/(parent)/home/_screens/my-catalogue")}
+        >
+          <Text style={s.catalogueButtonText}>Check My Catalogue</Text>
+        </Pressable>
       </ScrollView>
       </CurvedScreenBody>
     </View>
@@ -108,18 +128,23 @@ const s = StyleSheet.create({
     fontSize: 28,
     fontWeight: "800",
   },
-  pageSubtitle: {
-    marginTop: 8,
-    marginBottom: 10,
-    lineHeight: 20,
+  cardWrap: {
+    borderRadius: 22,
+    overflow: "hidden",
   },
   card: {
     borderRadius: 22,
+    borderWidth: 1,
+  },
+  cardBackgroundImage: {
+    borderRadius: 22,
+  },
+  cardOverlay: {
     padding: 16,
     flexDirection: "row",
     alignItems: "center",
     gap: 14,
-    borderWidth: 1,
+    backgroundColor: "rgba(255,255,255,0.68)",
     shadowColor: "#8F7AD8",
     shadowOpacity: 0.08,
     shadowRadius: 14,
@@ -152,5 +177,17 @@ const s = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "800",
     fontSize: 16,
+  },
+  catalogueButton: {
+    marginTop: 2,
+    borderRadius: 16,
+    paddingVertical: 15,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  catalogueButtonText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
   },
 });

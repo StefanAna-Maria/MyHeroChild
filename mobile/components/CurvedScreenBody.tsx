@@ -1,5 +1,5 @@
 import { ReactNode } from "react";
-import { StyleProp, StyleSheet, View, ViewStyle } from "react-native";
+import { ImageBackground, StyleProp, StyleSheet, View, ViewStyle } from "react-native";
 
 import { useTheme } from "../src/context/ThemeContext";
 
@@ -10,6 +10,7 @@ type CurvedScreenBodyProps = {
 
 export default function CurvedScreenBody({ children, style }: CurvedScreenBodyProps) {
   const theme = useTheme();
+  const isChildTheme = theme.role === "CHILD";
 
   return (
     <View
@@ -19,7 +20,18 @@ export default function CurvedScreenBody({ children, style }: CurvedScreenBodyPr
         style,
       ]}
     >
-      {children}
+      {isChildTheme ? (
+        <ImageBackground
+          source={require("../assets/backgrounds/childGeneral.png")}
+          resizeMode="cover"
+          style={s.childBackground}
+          imageStyle={s.childBackgroundImage}
+        >
+          <View style={s.childOverlay}>{children}</View>
+        </ImageBackground>
+      ) : (
+        children
+      )}
     </View>
   );
 }
@@ -31,5 +43,15 @@ const s = StyleSheet.create({
     borderTopLeftRadius: 30,
     borderTopRightRadius: 30,
     overflow: "hidden",
+  },
+  childBackground: {
+    flex: 1,
+  },
+  childBackgroundImage: {
+    opacity: 0.38,
+  },
+  childOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(255, 247, 237, 0.62)",
   },
 });

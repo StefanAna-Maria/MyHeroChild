@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
+  ImageBackground,
   Modal,
   Pressable,
   RefreshControl,
@@ -12,7 +13,9 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import CurvedScreenBody from "../../../../components/CurvedScreenBody";
 import { api } from "../../../../src/services/api";
 import { useTheme } from "../../../../src/context/ThemeContext";
 
@@ -33,6 +36,7 @@ type WishlistData = {
 export default function ChildWishlistScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [data, setData] = useState<WishlistData>({ wishlist: [], notifications: [] });
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
@@ -93,41 +97,59 @@ export default function ChildWishlistScreen() {
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <View style={[s.header, { backgroundColor: theme.colors.surface }]}>
-        <Pressable onPress={() => router.back()} style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}>
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-        </Pressable>
-        <View style={s.headerTextWrap}>
-          <Text style={[s.headerTitle, { color: theme.colors.text }]}>Wishlist</Text>
-          <Text style={[s.headerSubtitle, { color: theme.colors.textMuted }]}>
-            Save the rewards you would love your parent to add one day.
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
+      <ImageBackground
+        source={require("../../../../assets/images/ChildAppHeader.png")}
+        resizeMode="cover"
+        style={[s.header, { paddingTop: insets.top + 14 }]}
       >
-        <Pressable onPress={() => setModalVisible(true)} style={[s.newWishButton, { backgroundColor: theme.colors.primary }]}>
-          <Text style={s.newWishButtonText}>New Wish</Text>
-        </Pressable>
-
-        {data.wishlist.length === 0 ? (
-          <View style={[s.emptyCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-            <Text style={[s.emptyTitle, { color: theme.colors.text }]}>No wishes yet</Text>
-            <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
-              Add the title of a reward you would like to see in the future.
-            </Text>
+        <View style={s.headerTopRow}>
+          <Pressable onPress={() => router.back()} style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}>
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          </Pressable>
+          <View style={s.headerTextWrap}>
+            <Text style={s.headerTitle}>Wishlist</Text>
           </View>
-        ) : (
-          data.wishlist.map((reward) => (
-            <View key={reward.id} style={[s.wishCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
-              <Text style={[s.wishTitle, { color: theme.colors.text }]}>{reward.title}</Text>
+        </View>
+        <View style={s.headerBottomSpacer} />
+      </ImageBackground>
+
+      <CurvedScreenBody>
+        <ScrollView
+          contentContainerStyle={s.content}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />}
+        >
+          <Text style={[s.helperText, { color: theme.colors.textMuted }]}>
+            Express your wishes to let your parent know which rewards you would love them to add one day!
+          </Text>
+
+          <Pressable onPress={() => setModalVisible(true)} style={[s.newWishButton, { backgroundColor: theme.colors.primary }]}>
+            <Text style={s.newWishButtonText}>Make a Wish</Text>
+          </Pressable>
+
+          {data.wishlist.length === 0 ? (
+            <View style={[s.emptyCard, { backgroundColor: theme.colors.surface, borderColor: theme.colors.border }]}>
+              <Text style={[s.emptyTitle, { color: theme.colors.text }]}>No wishes yet</Text>
+              <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
+                Add the title of a reward you would like to see in the future.
+              </Text>
             </View>
-          ))
-        )}
-      </ScrollView>
+          ) : (
+            data.wishlist.map((reward) => (
+              <ImageBackground
+                key={reward.id}
+                source={require("../../../../assets/backgrounds/wishes.png")}
+                resizeMode="cover"
+                imageStyle={s.wishCardBackgroundImage}
+                style={[s.wishCard, { borderColor: theme.colors.border }]}
+              >
+                <View style={s.wishCardOverlay}>
+                  <Text style={[s.wishTitle, { color: theme.colors.text }]}>{reward.title}</Text>
+                </View>
+              </ImageBackground>
+            ))
+          )}
+        </ScrollView>
+      </CurvedScreenBody>
 
       <Modal visible={modalVisible} transparent animationType="fade" onRequestClose={() => setModalVisible(false)}>
         <View style={s.modalBackdrop}>
@@ -167,18 +189,29 @@ export default function ChildWishlistScreen() {
 
 const s = StyleSheet.create({
   screen: { flex: 1 },
-  header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 18, flexDirection: "row", alignItems: "center", gap: 16 },
+  header: { paddingHorizontal: 20, paddingBottom: 18 },
+  headerTopRow: { flexDirection: "row", alignItems: "center", gap: 16 },
+  headerBottomSpacer: { height: 54 },
   backButton: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
   headerTextWrap: { flex: 1, gap: 4 },
-  headerTitle: { fontSize: 24, fontWeight: "800" },
-  headerSubtitle: { fontSize: 15, lineHeight: 21 },
-  content: { padding: 16, paddingBottom: 32, gap: 14 },
+  headerTitle: {
+    fontSize: 30,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(31, 41, 55, 0.42)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
+  },
+  content: { padding: 16, paddingTop: 28, paddingBottom: 104, gap: 14 },
+  helperText: { fontSize: 17, lineHeight: 25, fontWeight: "600" },
   newWishButton: { borderRadius: 14, paddingVertical: 14, alignItems: "center" },
   newWishButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
   emptyCard: { borderRadius: 22, borderWidth: 1, padding: 18, gap: 8 },
   emptyTitle: { fontSize: 20, fontWeight: "800" },
   emptyText: { fontSize: 15, lineHeight: 22 },
-  wishCard: { borderRadius: 18, borderWidth: 1, padding: 16 },
+  wishCard: { borderRadius: 18, borderWidth: 1, overflow: "hidden" },
+  wishCardBackgroundImage: { borderRadius: 18 },
+  wishCardOverlay: { padding: 16, backgroundColor: "rgba(255,255,255,0.72)" },
   wishTitle: { fontSize: 18, fontWeight: "800" },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(16, 24, 40, 0.38)", alignItems: "center", justifyContent: "center", paddingHorizontal: 20 },
   modalCard: { width: "100%", borderWidth: 1, borderRadius: 22, padding: 20, gap: 14 },

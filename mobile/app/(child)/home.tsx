@@ -243,7 +243,7 @@ export default function ChildHome() {
                             <Text style={[s.taskTitle, { color: theme.colors.text }]}>{task.title}</Text>
 
                             <View style={s.taskMetaRow}>
-                              <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
+                              <View style={[s.typeBadge, { backgroundColor: "#E8C5FC" }]}>
                                 <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
                                   {task.type || "Task"}
                                 </Text>
@@ -327,7 +327,7 @@ const s = StyleSheet.create({
   content: {
     padding: 16,
     paddingTop: 18,
-    paddingBottom: 32,
+    paddingBottom: 104,
     gap: 16,
   },
   sectionCard: {
@@ -463,5 +463,8 @@ const s = StyleSheet.create({
     fontSize: 18,
     fontWeight: "800",
     lineHeight: 24,
+    textShadowColor: "rgba(31, 41, 55, 0.32)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 });

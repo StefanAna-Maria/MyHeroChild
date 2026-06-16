@@ -23,7 +23,6 @@ type OverviewMetrics = {
   totalRewardsClaimed: number;
   totalTasksCompleted: number;
   weeklyTaskCompletionRate: number;
-  weeklyUserGrowthPercentage: number;
 };
 
 type MonthlyActivityPoint = {
@@ -50,7 +49,6 @@ const metricDefinitions = [
   { key: "totalRewardsClaimed", label: "Rewards Claimed", accent: "#F9A8D4" },
   { key: "totalTasksCompleted", label: "Tasks Completed", accent: "#86EFAC" },
   { key: "weeklyTaskCompletionRate", label: "Weekly Completion Rate", accent: "#FDBA74" },
-  { key: "weeklyUserGrowthPercentage", label: "New User Growth", accent: "#FCA5A5" },
 ] as const;
 
 export default function AdminPanel() {
@@ -156,9 +154,6 @@ export default function AdminPanel() {
         >
           <View style={s.heroBlock}>
             <Text style={s.heroTitle}>Platform Analytics</Text>
-            <Text style={s.heroDescription}>
-              Track engagement across the entire app and switch between key admin insights.
-            </Text>
           </View>
 
           {loading && !analytics ? (
@@ -329,9 +324,8 @@ function formatMetricValue(key: keyof OverviewMetrics, value: number) {
     return value.toFixed(1);
   }
 
-  if (key === "weeklyTaskCompletionRate" || key === "weeklyUserGrowthPercentage") {
-    const prefix = value > 0 && key === "weeklyUserGrowthPercentage" ? "+" : "";
-    return `${prefix}${value.toFixed(1)}%`;
+  if (key === "weeklyTaskCompletionRate") {
+    return `${value.toFixed(1)}%`;
   }
 
   return String(value);
@@ -348,18 +342,13 @@ const s = StyleSheet.create({
     gap: 18,
   },
   heroBlock: {
-    gap: 10,
+    gap: 0,
   },
   heroTitle: {
     color: "#55d1bc",
     fontSize: 30,
     fontWeight: "800",
     lineHeight: 36,
-  },
-  heroDescription: {
-    color: "#D4DCEA",
-    fontSize: 16,
-    lineHeight: 24,
   },
   loadingCard: {
     borderRadius: 24,

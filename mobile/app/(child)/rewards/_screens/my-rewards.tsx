@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Image,
+  ImageBackground,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -11,7 +12,10 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+import CurvedScreenBody from "../../../../components/CurvedScreenBody";
+import { formatItemTypeLabel } from "../../../../constants/itemTypes";
 import { getRewardImage } from "../../../../constants/rewardImages";
 import { api } from "../../../../src/services/api";
 import { useTheme } from "../../../../src/context/ThemeContext";
@@ -43,6 +47,7 @@ type RewardsData = {
 export default function ChildMyRewardsScreen() {
   const theme = useTheme();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [data, setData] = useState<RewardsData>({
     rewardShop: [],
     myRewards: [],
@@ -94,43 +99,51 @@ export default function ChildMyRewardsScreen() {
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <View style={[s.header, { backgroundColor: theme.colors.surface }]}>
-        <Pressable
-          onPress={() => router.back()}
-          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
-        >
-          <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
-        </Pressable>
-
-        <View style={s.headerTextWrap}>
-          <Text style={[s.headerTitle, { color: theme.colors.text }]}>My Rewards</Text>
-          <Text style={[s.headerSubtitle, { color: theme.colors.textMuted }]}>
-            Your purchased reward collection.
-          </Text>
-        </View>
-      </View>
-
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
-        }
+      <ImageBackground
+        source={require("../../../../assets/images/ChildAppHeader.png")}
+        resizeMode="cover"
+        style={[s.header, { paddingTop: insets.top + 14 }]}
       >
-        <View
+        <View style={s.headerTopRow}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+          >
+            <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
+          </Pressable>
+
+          <View style={s.headerTextWrap}>
+            <Text style={s.headerTitle}>My Rewards</Text>
+          </View>
+        </View>
+        <View style={s.headerBottomSpacer} />
+      </ImageBackground>
+
+      <CurvedScreenBody>
+        <ScrollView
+          contentContainerStyle={s.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+          }
+        >
+        <ImageBackground
+          source={require("../../../../assets/backgrounds/laterTasks.png")}
+          resizeMode="cover"
+          imageStyle={s.sectionCardBackgroundImage}
           style={[
             s.sectionCard,
             {
-              backgroundColor: theme.colors.surface,
               borderColor: theme.colors.border,
             },
           ]}
         >
-          <View style={s.sectionHeader}>
-            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Ready To Enjoy</Text>
-            <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
-              <Text style={s.countBadgeText}>{data.myRewards.length}</Text>
+          <View style={s.sectionCardOverlay}>
+            <View style={s.sectionHeader}>
+              <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Ready To Enjoy</Text>
+              <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
+                <Text style={s.countBadgeText}>{data.myRewards.length}</Text>
+              </View>
             </View>
-          </View>
 
         {data.myRewards.length === 0 ? (
           <View
@@ -153,54 +166,49 @@ export default function ChildMyRewardsScreen() {
               key={reward.id}
               style={[s.rewardCard, { backgroundColor: theme.colors.surfaceAlt }]}
             >
-              <Image source={getRewardImage(reward.type)} style={s.rewardImage} />
+              <View style={s.rewardVisualColumn}>
+                <Image source={getRewardImage(reward.type)} style={s.rewardImage} />
+
+                <View style={[s.typeBadge, { backgroundColor: "#E8C5FC" }]}>
+                  <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                    {formatItemTypeLabel(reward.type || "reward")}
+                  </Text>
+                </View>
+              </View>
 
               <View style={s.rewardContent}>
                 <Text style={[s.rewardTitle, { color: theme.colors.text }]}>{reward.title}</Text>
-
-                <View style={s.rewardMetaRow}>
-                  <View style={[s.typeBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
-                    <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                      {reward.type || "Reward"}
-                    </Text>
-                  </View>
-
-                  <View style={s.metricItem}>
-                    <Text style={[s.metricValue, { color: theme.colors.text }]}>{reward.price}</Text>
-                    <Image
-                      source={require("../../../../assets/icons/reward_points.png")}
-                      style={s.metricIcon}
-                    />
-                  </View>
-                </View>
-
                 <Text style={[s.dateText, { color: theme.colors.textMuted }]}>
                   Available until {reward.endDate}
                 </Text>
-                <View style={[s.statusBadge, { backgroundColor: theme.colors.primary }]}>
-                  <Text style={s.statusBadgeText}>Waiting for parent to offer it</Text>
-                </View>
+                  <View style={[s.statusBadge, { backgroundColor: theme.colors.primary }]}>
+                    <Text style={s.statusBadgeText}>Waiting for parent to offer it</Text>
+                  </View>
               </View>
             </View>
           ))
         )}
-        </View>
+          </View>
+        </ImageBackground>
 
-        <View
+        <ImageBackground
+          source={require("../../../../assets/backgrounds/thisWeekTasks.png")}
+          resizeMode="cover"
+          imageStyle={s.sectionCardBackgroundImage}
           style={[
             s.sectionCard,
             {
-              backgroundColor: theme.colors.surface,
               borderColor: theme.colors.border,
             },
           ]}
         >
-          <View style={s.sectionHeader}>
-            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Granted History</Text>
-            <View style={[s.countBadge, { backgroundColor: theme.colors.accent }]}>
-              <Text style={s.countBadgeText}>{data.rewardHistory.length}</Text>
+          <View style={s.sectionCardOverlay}>
+            <View style={s.sectionHeader}>
+              <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Granted Rewards History</Text>
+              <View style={[s.countBadge, { backgroundColor: theme.colors.accent }]}>
+                <Text style={s.countBadgeText}>{data.rewardHistory.length}</Text>
+              </View>
             </View>
-          </View>
 
           {data.rewardHistory.length === 0 ? (
             <View
@@ -223,27 +231,18 @@ export default function ChildMyRewardsScreen() {
                 key={reward.id}
                 style={[s.rewardCard, { backgroundColor: theme.colors.surfaceAlt }]}
               >
-                <Image source={getRewardImage(reward.type)} style={s.rewardImage} />
+                <View style={s.rewardVisualColumn}>
+                  <Image source={getRewardImage(reward.type)} style={s.rewardImage} />
+
+                  <View style={[s.typeBadge, { backgroundColor: "#E8C5FC" }]}>
+                    <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                      {formatItemTypeLabel(reward.type || "reward")}
+                    </Text>
+                  </View>
+                </View>
 
                 <View style={s.rewardContent}>
                   <Text style={[s.rewardTitle, { color: theme.colors.text }]}>{reward.title}</Text>
-
-                  <View style={s.rewardMetaRow}>
-                    <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
-                      <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                        {reward.type || "Reward"}
-                      </Text>
-                    </View>
-
-                    <View style={s.metricItem}>
-                      <Text style={[s.metricValue, { color: theme.colors.text }]}>{reward.price}</Text>
-                      <Image
-                        source={require("../../../../assets/icons/reward_points.png")}
-                        style={s.metricIcon}
-                      />
-                    </View>
-                  </View>
-
                   <Text style={[s.dateText, { color: theme.colors.textMuted }]}>
                     Granted on{" "}
                     {reward.grantedAt
@@ -257,8 +256,10 @@ export default function ChildMyRewardsScreen() {
               </View>
             ))
           )}
-        </View>
+          </View>
+        </ImageBackground>
       </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -268,12 +269,16 @@ const s = StyleSheet.create({
     flex: 1,
   },
   header: {
-    paddingTop: 60,
     paddingHorizontal: 20,
     paddingBottom: 18,
+  },
+  headerTopRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 16,
+  },
+  headerBottomSpacer: {
+    height: 54,
   },
   backButton: {
     width: 52,
@@ -284,26 +289,33 @@ const s = StyleSheet.create({
   },
   headerTextWrap: {
     flex: 1,
-    gap: 4,
   },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "800",
-  },
-  headerSubtitle: {
-    fontSize: 15,
-    lineHeight: 21,
+    fontSize: 30,
+    fontWeight: "900",
+    color: "#FFFFFF",
+    textShadowColor: "rgba(31, 41, 55, 0.42)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingTop: 28,
+    paddingBottom: 104,
     gap: 14,
   },
   sectionCard: {
     borderRadius: 22,
     borderWidth: 1,
+    overflow: "hidden",
+  },
+  sectionCardBackgroundImage: {
+    borderRadius: 22,
+  },
+  sectionCardOverlay: {
     padding: 18,
     gap: 14,
+    backgroundColor: "rgba(255,255,255,0.72)",
   },
   sectionHeader: {
     flexDirection: "row",
@@ -344,56 +356,40 @@ const s = StyleSheet.create({
     borderRadius: 20,
     padding: 16,
     flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
+    alignItems: "flex-start",
+    gap: 14,
   },
   rewardImage: {
-    width: 62,
-    height: 62,
-    borderRadius: 31,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     resizeMode: "cover",
+  },
+  rewardVisualColumn: {
+    alignItems: "center",
+    gap: 10,
   },
   rewardContent: {
     flex: 1,
     gap: 8,
+    paddingTop: 2,
   },
   rewardTitle: {
     fontSize: 17,
     fontWeight: "800",
   },
-  rewardMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    gap: 12,
-  },
   typeBadge: {
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 999,
-    alignSelf: "flex-start",
   },
   typeBadgeText: {
     fontSize: 12,
     fontWeight: "700",
     textTransform: "uppercase",
   },
-  metricItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  metricValue: {
-    fontSize: 16,
-    fontWeight: "800",
-  },
-  metricIcon: {
-    width: 18,
-    height: 18,
-    resizeMode: "contain",
-  },
   dateText: {
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: "600",
   },
   statusBadge: {

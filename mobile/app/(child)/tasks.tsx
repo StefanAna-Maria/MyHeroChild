@@ -317,7 +317,7 @@ export default function ChildTasksScreen() {
                               <Text style={[s.taskTitle, { color: theme.colors.text }]}>{task.title}</Text>
 
                               <View style={s.taskMetaRow}>
-                                <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
+                                <View style={[s.typeBadge, { backgroundColor: "#E8C5FC" }]}>
                                   <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
                                     {task.type || "Task"}
                                   </Text>
@@ -377,7 +377,7 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingBottom: 104,
     gap: 16,
   },
   sectionHeader: {

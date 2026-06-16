@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
-import { Alert, Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import CurvedScreenBody from "../../../../components/CurvedScreenBody";
 import { api } from "../../../../src/services/api";
 import { useTheme } from "../../../../src/context/ThemeContext";
 import {
@@ -10,10 +12,44 @@ import {
   resolveAgeGroup,
 } from "../../../../constants/parentCatalogue";
 
+const taskTypeImages: Record<string, any> = {
+  default: require("../../../../assets/icons/Homework.png"),
+  school_work: require("../../../../assets/icons/Homework.png"),
+  reading: require("../../../../assets/icons/Homework.png"),
+  hygiene: require("../../../../assets/icons/Hygiene.png"),
+  neat_tidy: require("../../../../assets/icons/NeatTidy.png"),
+  chores: require("../../../../assets/icons/Chores.png"),
+  family_help: require("../../../../assets/icons/FamilyHelp.png"),
+  responsibility: require("../../../../assets/icons/FamilyHelp.png"),
+  respect_kindness: require("../../../../assets/icons/FamilyHelp.png"),
+  health: require("../../../../assets/icons/Hygiene.png"),
+  life_skills: require("../../../../assets/icons/FamilyHelp.png"),
+  self_improvement: require("../../../../assets/icons/Homework.png"),
+  digital_balance: require("../../../../assets/icons/Homework.png"),
+  social_skills: require("../../../../assets/icons/FamilyHelp.png"),
+  creativity: require("../../../../assets/icons/Homework.png"),
+};
+
+const getPackageImage = (pkg: PackageItem) => {
+  if (pkg.tasks.length === 0) {
+    return taskTypeImages.default;
+  }
+
+  const counts = new Map<string, number>();
+  pkg.tasks.forEach((task) => {
+    const type = task.type || "default";
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  });
+
+  const dominant = [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "default";
+  return taskTypeImages[dominant] ?? taskTypeImages.default;
+};
+
 export default function ExploreCategoryScreen() {
   const { category } = useLocalSearchParams<{ category: string }>();
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [packages, setPackages] = useState<PackageItem[]>([]);
   const [catalogueIds, setCatalogueIds] = useState<number[]>([]);
 
@@ -57,33 +93,29 @@ export default function ExploreCategoryScreen() {
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <View
-        style={[
-          s.topBar,
-          {
-            backgroundColor: theme.colors.surface,
-            borderBottomColor: theme.colors.border,
-          },
-        ]}
+      <ImageBackground
+        source={require("../../../../assets/images/ParentAppHeader.png")}
+        resizeMode="cover"
+        style={[s.topBar, { paddingTop: insets.top + 14 }]}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
-        >
-          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
-        </Pressable>
+        <View style={s.topBarContent}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+          >
+            <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+          </Pressable>
 
-        <Text style={[s.topBarTitle, { color: theme.colors.text }]}>
-          {selectedCategory.title}
-        </Text>
+          <Text style={[s.topBarTitle, { color: theme.colors.text }]}>
+            {selectedCategory.title}
+          </Text>
 
-        <Image source={selectedCategory.image} style={s.topBarImage} />
-      </View>
+          <Image source={selectedCategory.image} style={s.topBarImage} />
+        </View>
+      </ImageBackground>
 
+      <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={[s.subtitle, { color: theme.colors.textMuted }]}>
-          {selectedCategory.subtitle}
-        </Text>
 
         {filteredPackages.length === 0 ? (
           <View
@@ -114,19 +146,24 @@ export default function ExploreCategoryScreen() {
                   },
                 ]}
               >
-                <Pressable
-                  onPress={() =>
-                    router.push({
-                      pathname: "/(parent)/explore/_screens/package-detail",
-                      params: { packageId: String(pkg.id), category: selectedCategory.key },
-                    })
-                  }
-                >
-                  <Text style={[s.cardTitle, { color: theme.colors.text }]}>{pkg.title}</Text>
-                  <Text style={{ color: theme.colors.textMuted }}>
-                    {pkg.description || "No description provided."}
-                  </Text>
-                </Pressable>
+                <View style={s.cardTopRow}>
+                  <Image source={getPackageImage(pkg)} style={s.packageImage} />
+
+                  <Pressable
+                    style={s.cardTextContent}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(parent)/explore/_screens/package-detail",
+                        params: { packageId: String(pkg.id), category: selectedCategory.key },
+                      })
+                    }
+                  >
+                    <Text style={[s.cardTitle, { color: theme.colors.text }]}>{pkg.title}</Text>
+                    <Text style={{ color: theme.colors.textMuted }}>
+                      {pkg.description || "No description provided."}
+                    </Text>
+                  </Pressable>
+                </View>
 
                 <View style={s.cardFooter}>
                   <View style={s.metaRow}>
@@ -178,6 +215,7 @@ export default function ExploreCategoryScreen() {
           })
         )}
       </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -187,13 +225,14 @@ const s = StyleSheet.create({
     flex: 1,
   },
   topBar: {
-    paddingTop: 56,
-    paddingBottom: 18,
-    paddingHorizontal: 16,
+    paddingBottom: 34,
+    paddingHorizontal: 20,
+  },
+  topBarContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderBottomWidth: 1,
+    minHeight: 42,
   },
   backButton: {
     width: 40,
@@ -215,12 +254,9 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 28,
     paddingBottom: 32,
     gap: 14,
-  },
-  subtitle: {
-    marginBottom: 4,
-    lineHeight: 20,
   },
   emptyCard: {
     padding: 16,
@@ -237,6 +273,14 @@ const s = StyleSheet.create({
     shadowRadius: 12,
     shadowOffset: { width: 0, height: 6 },
     elevation: 2,
+  },
+  cardTopRow: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 12,
+  },
+  cardTextContent: {
+    flex: 1,
   },
   cardTitle: {
     fontSize: 18,
@@ -263,6 +307,12 @@ const s = StyleSheet.create({
     justifyContent: "space-between",
     gap: 12,
   },
+  packageImage: {
+    width: 62,
+    height: 62,
+    resizeMode: "contain",
+    borderRadius: 18,
+  },
   catalogueButton: {
     borderRadius: 14,
     paddingVertical: 10,
@@ -270,7 +320,6 @@ const s = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     minWidth: 92,
-    alignSelf: "flex-end",
   },
   catalogueButtonText: {
     color: "#FFFFFF",

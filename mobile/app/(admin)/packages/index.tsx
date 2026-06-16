@@ -128,11 +128,6 @@ export default function Packages() {
                           <View style={s.packageTypeIconBubble}>
                             <Image source={dominantTaskIcon} style={s.packageTypeIconImage} />
                           </View>
-
-                          <View style={s.ageBadge}>
-                            <Text style={s.ageBadgeText}>Ages:</Text>
-                            <Text style={s.ageBadgeValue}>{item.ageGroup}</Text>
-                          </View>
                         </View>
 
                         <Text style={[s.title, { color: theme.colors.text }]} numberOfLines={2}>
@@ -140,30 +135,37 @@ export default function Packages() {
                         </Text>
                       </View>
 
-                      <View style={s.iconActions}>
-                        <Pressable
-                          onPress={() =>
-                            router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}&edit=1`)
-                          }
-                          style={s.iconButton}
-                          hitSlop={8}
-                        >
-                          <Image
-                            source={require("../../../assets/button_icons/edit.png")}
-                            style={s.iconImage}
-                          />
-                        </Pressable>
+                      <View style={s.headerRightColumn}>
+                        <View style={s.iconActions}>
+                          <Pressable
+                            onPress={() =>
+                              router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}&edit=1`)
+                            }
+                            style={s.iconButton}
+                            hitSlop={8}
+                          >
+                            <Image
+                              source={require("../../../assets/button_icons/edit.png")}
+                              style={s.iconImage}
+                            />
+                          </Pressable>
 
-                        <Pressable
-                          onPress={() => handleDeletePackage(item.id)}
-                          style={s.iconButton}
-                          hitSlop={8}
-                        >
-                          <Image
-                            source={require("../../../assets/button_icons/delete.png")}
-                            style={s.iconImage}
-                          />
-                        </Pressable>
+                          <Pressable
+                            onPress={() => handleDeletePackage(item.id)}
+                            style={s.iconButton}
+                            hitSlop={8}
+                          >
+                            <Image
+                              source={require("../../../assets/button_icons/delete.png")}
+                              style={s.iconImage}
+                            />
+                          </Pressable>
+                        </View>
+
+                        <View style={s.ageBadge}>
+                          <Text style={s.ageBadgeText}>Ages:</Text>
+                          <Text style={s.ageBadgeValue}>{item.ageGroup}</Text>
+                        </View>
                       </View>
                     </View>
 
@@ -263,6 +265,11 @@ const s = StyleSheet.create({
   iconActions: {
     flexDirection: "row",
     gap: 8,
+    alignSelf: "flex-end",
+  },
+  headerRightColumn: {
+    alignItems: "flex-end",
+    gap: 10,
   },
   iconButton: {
     width: 28,
