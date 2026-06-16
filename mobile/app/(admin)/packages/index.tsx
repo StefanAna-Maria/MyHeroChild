@@ -13,14 +13,48 @@ import { api } from "@/src/services/api";
 import { useTheme } from "@/src/context/ThemeContext";
 import AppHeader from "@/components/AppHeader";
 import CurvedScreenBody from "@/components/CurvedScreenBody";
+import { formatItemTypeLabel } from "@/constants/itemTypes";
 
 type PackageListItem = {
   id: number;
   title: string;
   ageGroup: string;
   description: string;
-  tasks: { id: number }[];
+  tasks: { id: number; type?: string }[];
   rewards: { id: number }[];
+};
+
+const taskTypeIcons: Record<string, any> = {
+  default: require("../../../assets/icons/Homework.png"),
+  school_work: require("../../../assets/icons/Homework.png"),
+  reading: require("../../../assets/icons/Homework.png"),
+  hygiene: require("../../../assets/icons/Hygiene.png"),
+  neat_tidy: require("../../../assets/icons/NeatTidy.png"),
+  chores: require("../../../assets/icons/Chores.png"),
+  family_help: require("../../../assets/icons/FamilyHelp.png"),
+  responsibility: require("../../../assets/icons/FamilyHelp.png"),
+  respect_kindness: require("../../../assets/icons/FamilyHelp.png"),
+  health: require("../../../assets/icons/Hygiene.png"),
+  life_skills: require("../../../assets/icons/FamilyHelp.png"),
+  self_improvement: require("../../../assets/icons/Homework.png"),
+  digital_balance: require("../../../assets/icons/Homework.png"),
+  social_skills: require("../../../assets/icons/FamilyHelp.png"),
+  creativity: require("../../../assets/icons/Homework.png"),
+};
+
+const getDominantTaskType = (tasks: { type?: string }[]) => {
+  if (tasks.length === 0) {
+    return "default";
+  }
+
+  const counts = new Map<string, number>();
+
+  tasks.forEach((task) => {
+    const type = task.type || "default";
+    counts.set(type, (counts.get(type) ?? 0) + 1);
+  });
+
+  return [...counts.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? "default";
 };
 
 export default function Packages() {
@@ -71,74 +105,98 @@ export default function Packages() {
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={s.content}
           renderItem={({ item }) => (
-          <Pressable
-            onPress={() => router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}`)}
-            style={[
-              s.card,
-              {
-                backgroundColor: theme.colors.surface,
-                borderColor: theme.colors.border,
-              },
-            ]}
-          >
-            <View style={s.cardHeaderRow}>
-              <View style={s.cardTextWrap}>
-                <Text style={[s.title, { color: theme.colors.text }]}>{item.title}</Text>
-                <Text style={[s.metaText, { color: theme.colors.textMuted }]}>
-                  Age Group {item.ageGroup}
-                </Text>
-              </View>
-
-              <View style={s.iconActions}>
-                <Pressable
-                  onPress={() =>
-                    router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}&edit=1`)
-                  }
-                  style={s.iconButton}
-                  hitSlop={8}
-                >
-                  <Image
-                    source={require("../../../assets/button_icons/edit.png")}
-                    style={s.iconImage}
-                  />
-                </Pressable>
-
-                <Pressable
-                  onPress={() => handleDeletePackage(item.id)}
-                  style={s.iconButton}
-                  hitSlop={8}
-                >
-                  <Image
-                    source={require("../../../assets/button_icons/delete.png")}
-                    style={s.iconImage}
-                  />
-                </Pressable>
-              </View>
-            </View>
-
-            <Text
-              style={[s.description, { color: theme.colors.textMuted }]}
-              numberOfLines={3}
+            <Pressable
+              onPress={() => router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}`)}
+              style={[
+                s.card,
+                {
+                  backgroundColor: theme.colors.surface,
+                  borderColor: theme.colors.border,
+                },
+              ]}
             >
-              {item.description || "No description provided."}
-            </Text>
+              {(() => {
+                const dominantTaskType = getDominantTaskType(item.tasks);
+                const dominantTaskIcon =
+                  taskTypeIcons[dominantTaskType] ?? taskTypeIcons.default;
 
-            <View style={s.metricsRow}>
-              <View style={[s.metricBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
-                <Text style={[s.metricValue, { color: theme.colors.text }]}>
-                  {item.tasks.length}
-                </Text>
-                <Text style={[s.metricLabel, { color: theme.colors.textMuted }]}>Tasks</Text>
-              </View>
+                return (
+                  <>
+                    <View style={s.cardHeaderRow}>
+                      <View style={s.visualAndTitleWrap}>
+                        <View style={s.packageTopVisualRow}>
+                          <View style={s.packageTypeIconBubble}>
+                            <Image source={dominantTaskIcon} style={s.packageTypeIconImage} />
+                          </View>
 
-              <View style={[s.metricBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
-                <Text style={[s.metricValue, { color: theme.colors.text }]}>
-                  {item.rewards.length}
-                </Text>
-                <Text style={[s.metricLabel, { color: theme.colors.textMuted }]}>Rewards</Text>
-              </View>
-            </View>
-          </Pressable>
+                          <View style={s.ageBadge}>
+                            <Text style={s.ageBadgeText}>Ages:</Text>
+                            <Text style={s.ageBadgeValue}>{item.ageGroup}</Text>
+                          </View>
+                        </View>
+
+                        <Text style={[s.title, { color: theme.colors.text }]} numberOfLines={2}>
+                          {item.title}
+                        </Text>
+                      </View>
+
+                      <View style={s.iconActions}>
+                        <Pressable
+                          onPress={() =>
+                            router.push(`/(admin)/packages/_screens/package-detail?id=${item.id}&edit=1`)
+                          }
+                          style={s.iconButton}
+                          hitSlop={8}
+                        >
+                          <Image
+                            source={require("../../../assets/button_icons/edit.png")}
+                            style={s.iconImage}
+                          />
+                        </Pressable>
+
+                        <Pressable
+                          onPress={() => handleDeletePackage(item.id)}
+                          style={s.iconButton}
+                          hitSlop={8}
+                        >
+                          <Image
+                            source={require("../../../assets/button_icons/delete.png")}
+                            style={s.iconImage}
+                          />
+                        </Pressable>
+                      </View>
+                    </View>
+
+                    <Text
+                      style={[s.description, { color: theme.colors.textMuted }]}
+                      numberOfLines={3}
+                    >
+                      {item.description || "No description provided."}
+                    </Text>
+
+                    <View style={s.metricsRow}>
+                      <View style={[s.metricBadge, { backgroundColor: "#C7E9FF" }]}>
+                        <Text style={[s.metricValue, { color: "#1B2A41" }]}>
+                          {item.tasks.length} tasks
+                        </Text>
+                      </View>
+
+                      <View style={[s.metricBadge, { backgroundColor: "#D6F2C7" }]}>
+                        <Text style={[s.metricValue, { color: "#1B2A41" }]}>
+                          {item.rewards.length} rewards
+                        </Text>
+                      </View>
+                    </View>
+
+                    {item.tasks.length > 0 ? (
+                      <Text style={[s.typeSummary, { color: theme.colors.textMuted }]} numberOfLines={1}>
+                        {formatItemTypeLabel(dominantTaskType)}
+                      </Text>
+                    ) : null}
+                  </>
+                );
+              })()}
+            </Pressable>
           )}
           ListFooterComponent={
             <Pressable
@@ -175,20 +233,14 @@ const s = StyleSheet.create({
     alignItems: "flex-start",
     gap: 12,
   },
-  cardTextWrap: {
+  visualAndTitleWrap: {
     flex: 1,
-    gap: 4,
+    gap: 10,
   },
   title: {
     fontSize: 20,
     fontWeight: "800",
-    paddingRight: 8,
-  },
-  metaText: {
-    fontSize: 13,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
+    paddingRight: 4,
   },
   description: {
     lineHeight: 21,
@@ -199,19 +251,14 @@ const s = StyleSheet.create({
   },
   metricBadge: {
     flex: 1,
-    borderRadius: 14,
-    paddingVertical: 12,
+    borderRadius: 999,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
     alignItems: "center",
-    gap: 2,
   },
   metricValue: {
-    fontSize: 18,
+    fontSize: 15,
     fontWeight: "800",
-  },
-  metricLabel: {
-    fontSize: 12,
-    fontWeight: "700",
-    textTransform: "uppercase",
   },
   iconActions: {
     flexDirection: "row",
@@ -227,6 +274,49 @@ const s = StyleSheet.create({
     width: 22,
     height: 22,
     resizeMode: "contain",
+  },
+  packageTopVisualRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
+  },
+  packageTypeIconBubble: {
+    width: 86,
+    height: 86,
+    borderRadius: 22,
+    backgroundColor: "#163447",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  packageTypeIconImage: {
+    width: 62,
+    height: 62,
+    resizeMode: "contain",
+  },
+  ageBadge: {
+    minWidth: 72,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#D9A8FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  ageBadgeText: {
+    color: "#40285C",
+    fontSize: 12,
+    fontWeight: "800",
+  },
+  ageBadgeValue: {
+    color: "#40285C",
+    fontSize: 18,
+    fontWeight: "800",
+    lineHeight: 20,
+  },
+  typeSummary: {
+    fontSize: 15,
+    fontWeight: "600",
   },
   addBtn: {
     marginTop: 4,

@@ -2,6 +2,7 @@ import { View, Text, StyleSheet, Animated, Image, Pressable, Alert, ImageBackgro
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "../src/context/ThemeContext";
 import { useUser } from "../src/context/UserContext";
@@ -23,6 +24,7 @@ export default function AppHeader() {
   const { user, isLoading, refreshUser } = useUser();
   const { token, role: authRole, logout } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
@@ -87,7 +89,7 @@ export default function AppHeader() {
     <ImageBackground
       source={backgroundSource}
       resizeMode="cover"
-      style={s.container}
+      style={[s.container, { paddingTop: insets.top + 14 }]}
       imageStyle={s.backgroundImage}
     >
         <View style={s.topRow}>
@@ -134,7 +136,7 @@ export default function AppHeader() {
               style={s.avatar}
             />
 
-            <Text style={[s.username, { color: theme.colors.text }]}>
+            <Text style={[s.username, { color: role === "CHILD" ? "#FFFFFF" : theme.colors.text }]}>
               {username}
             </Text>
           </View>
@@ -144,7 +146,7 @@ export default function AppHeader() {
 
         <View style={s.progressSection}>
 
-          <Text style={[s.levelText, { color: theme.colors.textMuted }]}>
+          <Text style={s.levelText}>
             Level {level}
           </Text>
 
@@ -154,7 +156,7 @@ export default function AppHeader() {
               style={[
                 s.progressBar,
                 {
-                  backgroundColor: theme.colors.primary,
+                  backgroundColor: "#FACC15",
                   width: progressWidth
                 }
               ]}
@@ -203,7 +205,6 @@ export default function AppHeader() {
 const s = StyleSheet.create({
 
   container: {
-    paddingTop: 60,
     paddingBottom: 36,
     paddingHorizontal: 20,
     overflow: "hidden",
@@ -242,7 +243,10 @@ const s = StyleSheet.create({
 
   username: {
     fontSize: 22,
-    fontWeight: "800"
+    fontWeight: "800",
+    textShadowColor: "rgba(255,255,255,0.95)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 4,
   },
 
   progressSection: {
@@ -250,8 +254,9 @@ const s = StyleSheet.create({
   },
 
   levelText: {
-    fontWeight: "600",
-    marginBottom: 4
+    fontWeight: "700",
+    marginBottom: 4,
+    color: "#FFFFFF",
   },
 
   progressBarContainer: {

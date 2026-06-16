@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Alert,
   Image,
+  ImageBackground,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -13,6 +14,7 @@ import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../components/AppHeader";
 import BonusStatusBadge from "../../components/BonusStatusBadge";
+import CurvedScreenBody from "../../components/CurvedScreenBody";
 import { api } from "../../src/services/api";
 import { useUser } from "../../src/context/UserContext";
 import { useTheme } from "../../src/context/ThemeContext";
@@ -107,6 +109,14 @@ const getGroupKey = (startDate: string, endDate: string, today: Date): GroupKey 
 };
 
 const formatRange = (startDate: string, endDate: string) => `${startDate} - ${endDate}`;
+
+const groupBackgrounds: Record<GroupKey, any> = {
+  Today: require("../../assets/backgrounds/todayTasks.png"),
+  "This Week": require("../../assets/backgrounds/thisWeekTasks.png"),
+  "Next Week": require("../../assets/backgrounds/nextWeekTasks.png"),
+  "This Month": require("../../assets/backgrounds/thisMonthTasks.png"),
+  Later: require("../../assets/backgrounds/laterTasks.png"),
+};
 
 export default function ChildTasksScreen() {
   const theme = useTheme();
@@ -211,146 +221,152 @@ export default function ChildTasksScreen() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
-        }
-      >
-        <View style={s.sectionHeader}>
-          <Text style={[s.pageTitle, { color: theme.colors.text }]}>Tasks</Text>
-          <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
-            Review every task you received and mark it when you are ready for parent validation.
-          </Text>
-        </View>
-
-        {order.map((groupKey) => {
-          const items = groupedTasks.get(groupKey) ?? [];
-
-          if (groupKey !== "Today" && items.length === 0) {
-            return null;
+      <CurvedScreenBody>
+        <ScrollView
+          contentContainerStyle={s.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
           }
+        >
+          <View style={s.sectionHeader}>
+            <Text style={[s.pageTitle, { color: theme.colors.text }]}>Tasks</Text>
+            <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
+              Review every task you received and mark it when you are ready for parent validation.
+            </Text>
+          </View>
 
-          return (
-            <View
-              key={groupKey}
-              style={[
-                s.sectionCard,
-                {
-                  backgroundColor: theme.colors.surface,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-            >
-              <View style={s.groupHeader}>
-                <Text style={[s.sectionTitle, { color: theme.colors.text }]}>{groupKey}</Text>
-                <View style={s.groupHeaderRight}>
-                  {groupKey === "Today" ? (
-                    <BonusStatusBadge bonus={data.dailyBonus} onClaim={claimBonus} compact />
-                  ) : null}
-                  {items.length > 0 ? (
-                    <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
-                      <Text style={s.countBadgeText}>{items.length}</Text>
+          {order.map((groupKey) => {
+            const items = groupedTasks.get(groupKey) ?? [];
+
+            if (groupKey !== "Today" && items.length === 0) {
+              return null;
+            }
+
+            return (
+              <ImageBackground
+                key={groupKey}
+                source={groupBackgrounds[groupKey]}
+                resizeMode="cover"
+                imageStyle={s.sectionCardBackgroundImage}
+                style={[
+                  s.sectionCard,
+                  {
+                    borderColor: theme.colors.border,
+                  },
+                ]}
+              >
+                <View style={s.sectionCardOverlay}>
+                  <View style={s.groupHeader}>
+                    <Text style={[s.sectionTitle, { color: theme.colors.text }]}>{groupKey}</Text>
+                    <View style={s.groupHeaderRight}>
+                      {groupKey === "Today" ? (
+                        <BonusStatusBadge bonus={data.dailyBonus} onClaim={claimBonus} compact />
+                      ) : null}
+                      {items.length > 0 ? (
+                        <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
+                          <Text style={s.countBadgeText}>{items.length}</Text>
+                        </View>
+                      ) : null}
                     </View>
-                  ) : null}
-                </View>
-              </View>
+                  </View>
 
-              {items.length === 0 ? (
-                <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
-                  No tasks are active for today right now.
-                </Text>
-              ) : (
-                items.map((task) => {
-                  const isUpdating = pendingTaskIds.includes(task.id);
-                  const isHighlighted = task.completionRequested;
+                  {items.length === 0 ? (
+                    <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
+                      No tasks are active for today right now.
+                    </Text>
+                  ) : (
+                    items.map((task) => {
+                      const isUpdating = pendingTaskIds.includes(task.id);
+                      const isHighlighted = task.completionRequested;
 
-                  return (
-                    <View
-                      key={task.id}
-                      style={[
-                        s.taskCard,
-                        {
-                          backgroundColor: isHighlighted
-                            ? theme.colors.primaryLight
-                            : theme.colors.surfaceAlt,
-                          borderColor: isHighlighted ? theme.colors.primary : "transparent",
-                        },
-                      ]}
-                    >
-                      <View style={s.taskTopRow}>
-                        <Pressable
-                          onPress={() => toggleTask(task)}
-                          disabled={isUpdating}
+                      return (
+                        <View
+                          key={task.id}
                           style={[
-                            s.checkbox,
+                            s.taskCard,
                             {
-                              borderColor: isHighlighted
-                                ? theme.colors.primary
-                                : theme.colors.textMuted,
                               backgroundColor: isHighlighted
-                                ? theme.colors.primary
-                                : theme.colors.surface,
+                                ? theme.colors.primaryLight
+                                : theme.colors.surfaceAlt,
+                              borderColor: isHighlighted ? theme.colors.primary : "transparent",
                             },
                           ]}
                         >
-                          {isHighlighted ? (
-                            <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                          ) : null}
-                        </Pressable>
+                          <View style={s.taskTopRow}>
+                            <Pressable
+                              onPress={() => toggleTask(task)}
+                              disabled={isUpdating}
+                              style={[
+                                s.checkbox,
+                                {
+                                  borderColor: isHighlighted
+                                    ? theme.colors.primary
+                                    : theme.colors.textMuted,
+                                  backgroundColor: isHighlighted
+                                    ? theme.colors.primary
+                                    : theme.colors.surface,
+                                },
+                              ]}
+                            >
+                              {isHighlighted ? (
+                                <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                              ) : null}
+                            </Pressable>
 
-                        <View style={s.taskContent}>
-                          <Text style={[s.taskTitle, { color: theme.colors.text }]}>{task.title}</Text>
+                            <View style={s.taskContent}>
+                              <Text style={[s.taskTitle, { color: theme.colors.text }]}>{task.title}</Text>
 
-                          <View style={s.taskMetaRow}>
-                            <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
-                              <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                                {task.type || "Task"}
+                              <View style={s.taskMetaRow}>
+                                <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
+                                  <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                                    {task.type || "Task"}
+                                  </Text>
+                                </View>
+
+                                <View style={s.metricGroup}>
+                                  <View style={s.metricItem}>
+                                    <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                                      {task.xp}
+                                    </Text>
+                                    <Image
+                                      source={require("../../assets/icons/xp.png")}
+                                      style={s.metricIcon}
+                                    />
+                                  </View>
+
+                                  <View style={s.metricItem}>
+                                    <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                                      {task.rewardPoints}
+                                    </Text>
+                                    <Image
+                                      source={require("../../assets/icons/reward_points.png")}
+                                      style={s.metricIcon}
+                                    />
+                                  </View>
+                                </View>
+                              </View>
+
+                              <Text style={[s.dateText, { color: theme.colors.textMuted }]}>
+                                {formatRange(task.startDate, task.endDate)}
                               </Text>
-                            </View>
 
-                            <View style={s.metricGroup}>
-                              <View style={s.metricItem}>
-                                <Text style={[s.metricValue, { color: theme.colors.text }]}>
-                                  {task.xp}
-                                </Text>
-                                <Image
-                                  source={require("../../assets/icons/xp.png")}
-                                  style={s.metricIcon}
-                                />
-                              </View>
-
-                              <View style={s.metricItem}>
-                                <Text style={[s.metricValue, { color: theme.colors.text }]}>
-                                  {task.rewardPoints}
-                                </Text>
-                                <Image
-                                  source={require("../../assets/icons/reward_points.png")}
-                                  style={s.metricIcon}
-                                />
-                              </View>
+                              {task.completionRequested ? (
+                                <View style={[s.statusPill, { backgroundColor: theme.colors.primary }]}>
+                                  <Text style={s.statusPillText}>Awaiting parent validation</Text>
+                                </View>
+                              ) : null}
                             </View>
                           </View>
-
-                          <Text style={[s.dateText, { color: theme.colors.textMuted }]}>
-                            {formatRange(task.startDate, task.endDate)}
-                          </Text>
-
-                          {task.completionRequested ? (
-                            <View style={[s.statusPill, { backgroundColor: theme.colors.primary }]}>
-                              <Text style={s.statusPillText}>Awaiting parent validation</Text>
-                            </View>
-                          ) : null}
                         </View>
-                      </View>
-                    </View>
-                  );
-                })
-              )}
-            </View>
-          );
-        })}
-      </ScrollView>
+                      );
+                    })
+                  )}
+                </View>
+              </ImageBackground>
+            );
+          })}
+        </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -378,8 +394,16 @@ const s = StyleSheet.create({
   sectionCard: {
     borderRadius: 22,
     borderWidth: 1,
+    gap: 12,
+    overflow: "hidden",
+  },
+  sectionCardBackgroundImage: {
+    borderRadius: 22,
+  },
+  sectionCardOverlay: {
     padding: 18,
     gap: 12,
+    backgroundColor: "rgba(255,255,255,0.78)",
   },
   groupHeader: {
     flexDirection: "row",

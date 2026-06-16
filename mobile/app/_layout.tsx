@@ -1,5 +1,7 @@
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
+import { StatusBar } from "expo-status-bar";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider, useAuth } from "../src/auth/AuthContext";
 import { UserProvider } from "../src/context/UserContext";
 import { ThemeProvider } from "../src/context/ThemeContext";
@@ -44,15 +46,19 @@ function RoleRouteGuard() {
 export default function RootLayout() {
 
   return (
-    <AuthProvider>
-      <UserProvider>
-        <ThemeProvider>
-          <RoleRouteGuard />
+    <SafeAreaProvider>
+      <StatusBar translucent backgroundColor="transparent" style="auto" />
 
-          <Stack screenOptions={{ headerShown: false }} />
+      <AuthProvider>
+        <UserProvider>
+          <ThemeProvider>
+            <RoleRouteGuard />
 
-        </ThemeProvider>
-      </UserProvider>
-    </AuthProvider>
+            <Stack screenOptions={{ headerShown: false }} />
+
+          </ThemeProvider>
+        </UserProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
