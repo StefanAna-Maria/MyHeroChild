@@ -1,21 +1,30 @@
-import { View, Text, StyleSheet, Animated, Image, Pressable, Alert } from "react-native";
+import { View, Text, StyleSheet, Animated, Image, Pressable, Alert, ImageBackground } from "react-native";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import { useTheme } from "../src/context/ThemeContext";
 import { useUser } from "../src/context/UserContext";
 import { useAuth } from "../src/auth/AuthContext";
+import { getUsernameFromToken } from "../src/auth/jwt";
 import { getAvatarSource } from "../constants/avatars";
 import AvatarPicker from "./AvatarPicker";
 import { api } from "../src/services/api";
 
+const headerBackgrounds = {
+  ADMIN: require("../assets/images/AdminAppHeader.png"),
+  PARENT: require("../assets/images/ParentAppHeader.png"),
+  CHILD: require("../assets/images/ChildAppHeader.png"),
+} as const;
+
 export default function AppHeader() {
 
   const theme = useTheme();
-  const { user, refreshUser } = useUser();
-  const { logout } = useAuth();
+  const { user, isLoading, refreshUser } = useUser();
+  const { token, role: authRole, logout } = useAuth();
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const progressAnim = useRef(new Animated.Value(0)).current;
   const [avatarPickerVisible, setAvatarPickerVisible] = useState(false);
@@ -62,9 +71,14 @@ export default function AppHeader() {
 
   }, [nextLevelMinTotalXp, progressAnim, xpIntoCurrentLevel, xpNeededForNextLevel]);
 
-  if (!user) return null;
+  const role = user?.role ?? authRole;
+  const username = user?.username ?? (token ? getUsernameFromToken(token) : null) ?? "User";
+  const level = user?.level ?? 1;
+  const avatar = user?.avatar;
 
-  const { username, role, level } = user;
+  if (!role) return null;
+
+  const backgroundSource = headerBackgrounds[role as keyof typeof headerBackgrounds] ?? headerBackgrounds.PARENT;
 
   const progressWidth = progressAnim.interpolate({
     inputRange: [0, 1],
@@ -72,10 +86,14 @@ export default function AppHeader() {
   });
 
   return (
-    <View style={[s.container, { backgroundColor: theme.colors.surface }]}>
-
+    <ImageBackground
+      source={backgroundSource}
+      resizeMode="cover"
+      style={[s.container, { paddingTop: insets.top + 14 }]}
+      imageStyle={s.backgroundImage}
+    >
         <View style={s.topRow}>
-          {(role === "PARENT" || role === "CHILD") ? (
+          {(role === "PARENT" || role === "CHILD" || role === "ADMIN") ? (
             <Pressable
               onPress={openLogout}
               style={[s.logoutButton, { backgroundColor: theme.colors.surfaceAlt }]}
@@ -99,7 +117,7 @@ export default function AppHeader() {
                 style={s.rewardPointsIcon}
               />
               <Text style={[s.rewardPointsText, { color: theme.colors.text }]}>
-                {user.rewardPoints}
+                {user?.rewardPoints ?? 0}
               </Text>
             </View>
           ) : null}
@@ -107,27 +125,34 @@ export default function AppHeader() {
           <View style={s.identityRow}>
             <Pressable
               onPress={openAvatarSelector}
+              disabled={!user || isLoading}
               style={[s.avatarToggleButton, { backgroundColor: theme.colors.surfaceAlt }]}
             >
               <Ionicons name="caret-down" size={14} color={theme.colors.text} />
             </Pressable>
 
             <Image
-              source={getAvatarSource(user.avatar)}
-              style={s.avatar}
+              source={getAvatarSource(avatar)}
+              style={[s.avatar, role === "CHILD" ? s.childAvatar : null]}
             />
 
-            <Text style={[s.username, { color: theme.colors.text }]}>
+            <Text
+              style={[
+                s.username,
+                role === "CHILD" ? s.childUsername : null,
+                { color: role === "CHILD" ? "#FFFFFF" : theme.colors.text },
+              ]}
+            >
               {username}
             </Text>
           </View>
         </View>
 
-      {role === "CHILD" && (
+      {role === "CHILD" && user && (
 
         <View style={s.progressSection}>
 
-          <Text style={[s.levelText, { color: theme.colors.textMuted }]}>
+          <Text style={s.levelText}>
             Level {level}
           </Text>
 
@@ -137,7 +162,7 @@ export default function AppHeader() {
               style={[
                 s.progressBar,
                 {
-                  backgroundColor: theme.colors.primary,
+                  backgroundColor: "#FACC15",
                   width: progressWidth
                 }
               ]}
@@ -158,8 +183,8 @@ export default function AppHeader() {
             visible={avatarPickerVisible}
             onClose={() => setAvatarPickerVisible(false)}
             placement="left"
-            currentAvatar={user.avatar}
-            options={user.avatarOptions}
+            currentAvatar={user?.avatar ?? "robot"}
+            options={user?.avatarOptions ?? []}
             onSelect={ async (avatar) => {
                 try {
                   await api.patch("/users/me/avatar", { avatar });
@@ -179,17 +204,21 @@ export default function AppHeader() {
               }
             }}
         />
-
-    </View>
+    </ImageBackground>
   );
 }
 
 const s = StyleSheet.create({
 
   container: {
-    paddingTop: 60,
-    paddingBottom: 18,
-    paddingHorizontal: 20
+    paddingBottom: 36,
+    paddingHorizontal: 20,
+    overflow: "hidden",
+  },
+
+  backgroundImage: {
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
 
   topRow: {
@@ -217,10 +246,21 @@ const s = StyleSheet.create({
     height: 42,
     borderRadius: 21
   },
+  childAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
 
   username: {
     fontSize: 22,
-    fontWeight: "800"
+    fontWeight: "800",
+  },
+  childUsername: {
+    fontSize: 26,
+    textShadowColor: "rgba(31, 41, 55, 0.42)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
 
   progressSection: {
@@ -228,8 +268,12 @@ const s = StyleSheet.create({
   },
 
   levelText: {
-    fontWeight: "600",
-    marginBottom: 4
+    fontWeight: "700",
+    marginBottom: 4,
+    color: "#FFFFFF",
+    textShadowColor: "rgba(31, 41, 55, 0.42)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 6,
   },
 
   progressBarContainer: {
@@ -248,7 +292,7 @@ const s = StyleSheet.create({
   progressTextInside: {
     fontSize: 12,
     textAlign: "center",
-    color: "#FFFFFF",
+    color: "#581C87",
     fontWeight: "800",
     position: "absolute",
     width: "100%",

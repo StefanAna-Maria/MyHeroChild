@@ -29,3 +29,9 @@ export function getRoleFromToken(token: string): UserRole | null {
   if (role === "PARENT" || role === "CHILD" || role === "ADMIN") return role;
   return null;
 }
+
+export function getUsernameFromToken(token: string): string | null {
+  const payload = decodeJwtPayload(token);
+  const subject = payload?.sub;
+  return typeof subject === "string" && subject.trim() ? subject : null;
+}

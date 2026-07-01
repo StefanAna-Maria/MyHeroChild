@@ -4,6 +4,7 @@ import { useFocusEffect } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import { avatars, AvatarType } from "../../constants/avatars";
 import AppHeader from "../../components/AppHeader";
+import CurvedScreenBody from "../../components/CurvedScreenBody";
 import { api } from "../../src/services/api";
 import { useTheme } from "../../src/context/ThemeContext";
 
@@ -77,16 +78,17 @@ export default function Evaluation() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.tabIconActive} />
-        }
-      >
+      <CurvedScreenBody>
+        <ScrollView
+          contentContainerStyle={s.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.tabIconActive} />
+          }
+        >
         <View style={s.header}>
           <Text style={[s.title, { color: theme.colors.text }]}>Evaluate</Text>
           <Text style={[s.subtitle, { color: theme.colors.textMuted }]}>
-            Review the tasks that your children marked as completed.
+            Review the tasks that your children claimed to have completed.
           </Text>
         </View>
 
@@ -162,7 +164,8 @@ export default function Evaluation() {
             </View>
           ))
         )}
-      </ScrollView>
+        </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -173,6 +176,7 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 18,
     paddingBottom: 32,
     gap: 16,
   },

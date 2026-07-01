@@ -26,6 +26,7 @@ type User = {
 
 type UserContextType = {
   user: User | null;
+  isLoading: boolean;
   refreshUser: () => Promise<void>;
 };
 
@@ -35,15 +36,18 @@ export function UserProvider({ children }: { children: ReactNode }) {
 
   const { token } = useAuth();
   const [user, setUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchUser = useCallback(async () => {
 
     if (!token) {
       setUser(null);
+      setIsLoading(false);
       return;
     }
 
     try {
+      setIsLoading(true);
 
       const res = await api.get("/users/me");
 
@@ -55,6 +59,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
       console.log("Failed to fetch user", error);
       setUser(null);
 
+    } finally {
+      setIsLoading(false);
     }
   }, [token]);
 
@@ -63,7 +69,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
   }, [fetchUser]);
 
   return (
-    <UserContext.Provider value={{ user, refreshUser: fetchUser }}>
+    <UserContext.Provider value={{ user, isLoading, refreshUser: fetchUser }}>
       {children}
     </UserContext.Provider>
   );

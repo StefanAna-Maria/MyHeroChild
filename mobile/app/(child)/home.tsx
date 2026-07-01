@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Image, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Alert, Image, ImageBackground, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../components/AppHeader";
 import BonusStatusBadge from "../../components/BonusStatusBadge";
+import CurvedScreenBody from "../../components/CurvedScreenBody";
 import { useUser } from "../../src/context/UserContext";
 import { api } from "../../src/services/api";
 import { useTheme } from "../../src/context/ThemeContext";
@@ -48,14 +49,18 @@ const homeShortcuts = [
   {
     key: "all-tasks",
     title: "Check All Tasks",
-    subtitle: "Open the full tasks page and review everything assigned to you.",
     route: "/(child)/tasks",
+    icon: "checkmark-done-circle-outline",
+    backgroundColor: "#F4A261",
+    borderColor: "#F7B78B",
   },
   {
     key: "rewards",
     title: "Buy&Claim Rewards",
-    subtitle: "Go to the rewards page to shop, check your rewards, and open wishlist.",
     route: "/(child)/rewards",
+    icon: "gift-outline",
+    backgroundColor: "#2A9D8F",
+    borderColor: "#58B8A8",
   },
 ];
 
@@ -164,149 +169,153 @@ export default function ChildHome() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
-        }
-      >
-        <View style={s.sectionHeader}>
-          <Text style={[s.pageTitle, { color: theme.colors.text }]}>Home</Text>
-          <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
-            Check today&apos;s missions and jump straight to the reward section you need.
-          </Text>
-        </View>
-
-        <View
-          style={[
-            s.sectionCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
+      <CurvedScreenBody>
+        <ScrollView
+          contentContainerStyle={s.content}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={theme.colors.primary} />
+          }
         >
-          <View style={s.todayHeaderRow}>
-            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Today&apos;s Tasks</Text>
-            <BonusStatusBadge bonus={data.dailyBonus} onClaim={claimBonus} />
-          </View>
-
-          {data.todaysTasks.length === 0 ? (
-            <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
-              No tasks for today just yet.
-            </Text>
-          ) : (
-            data.todaysTasks.map((task) => {
-              const isUpdating = pendingTaskIds.includes(task.id);
-              const isHighlighted = task.completionRequested;
-
-              return (
-                <View
-                  key={task.id}
-                  style={[
-                    s.taskCard,
-                    {
-                      backgroundColor: isHighlighted
-                        ? theme.colors.primaryLight
-                        : theme.colors.surfaceAlt,
-                      borderColor: isHighlighted ? theme.colors.primary : "transparent",
-                    },
-                  ]}
-                >
-                  <View style={s.taskTopRow}>
-                    <Pressable
-                      onPress={() => toggleTask(task)}
-                      disabled={isUpdating}
-                      style={[
-                        s.checkbox,
-                        {
-                          borderColor: isHighlighted
-                            ? theme.colors.primary
-                            : theme.colors.textMuted,
-                          backgroundColor: isHighlighted
-                            ? theme.colors.primary
-                            : theme.colors.surface,
-                        },
-                      ]}
-                    >
-                      {isHighlighted ? (
-                        <Ionicons name="checkmark" size={16} color="#FFFFFF" />
-                      ) : null}
-                    </Pressable>
-
-                    <View style={s.taskContent}>
-                      <Text style={[s.taskTitle, { color: theme.colors.text }]}>{task.title}</Text>
-
-                      <View style={s.taskMetaRow}>
-                        <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
-                          <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                            {task.type || "Task"}
-                          </Text>
-                        </View>
-
-                        <View style={s.metricGroup}>
-                          <View style={s.metricItem}>
-                            <Text style={[s.metricValue, { color: theme.colors.text }]}>
-                              {task.xp}
-                            </Text>
-                            <Image
-                              source={require("../../assets/icons/xp.png")}
-                              style={s.metricIcon}
-                            />
-                          </View>
-
-                          <View style={s.metricItem}>
-                            <Text style={[s.metricValue, { color: theme.colors.text }]}>
-                              {task.rewardPoints}
-                            </Text>
-                            <Image
-                              source={require("../../assets/icons/reward_points.png")}
-                              style={s.metricIcon}
-                            />
-                          </View>
-                        </View>
-                      </View>
-
-                      <Text style={[s.dateText, { color: theme.colors.textMuted }]}>
-                        {formatRange(task.startDate, task.endDate)}
-                      </Text>
-
-                      {task.completionRequested ? (
-                        <View style={[s.statusPill, { backgroundColor: theme.colors.primary }]}>
-                          <Text style={s.statusPillText}>Awaiting parent validation</Text>
-                        </View>
-                      ) : null}
-                    </View>
-                  </View>
-                </View>
-              );
-            })
-          )}
-        </View>
-
-        {homeShortcuts.map((shortcut) => (
-          <Pressable
-            key={shortcut.key}
-            onPress={() => router.push(shortcut.route as never)}
+          <View
             style={[
-              s.shortcutCard,
+              s.sectionCard,
               {
-                backgroundColor: theme.colors.surface,
                 borderColor: theme.colors.border,
               },
             ]}
           >
-            <View style={s.shortcutTextWrap}>
-              <Text style={[s.sectionTitle, { color: theme.colors.text }]}>{shortcut.title}</Text>
-              <Text style={[s.shortcutSubtitle, { color: theme.colors.textMuted }]}>
-                {shortcut.subtitle}
-              </Text>
-            </View>
+            <ImageBackground
+              source={require("../../assets/backgrounds/todayTasks.png")}
+              resizeMode="cover"
+              imageStyle={s.sectionCardBackgroundImage}
+              style={s.sectionCardFill}
+            >
+              <View style={s.sectionCardOverlay}>
+                <View style={s.todayHeaderRow}>
+                  <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Today&apos;s Tasks</Text>
+                  <BonusStatusBadge bonus={data.dailyBonus} onClaim={claimBonus} />
+                </View>
 
-            <Text style={[s.shortcutOpenText, { color: theme.colors.primary }]}>Open</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+                {data.todaysTasks.length === 0 ? (
+                  <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
+                    No tasks for today just yet.
+                  </Text>
+                ) : (
+                  data.todaysTasks.map((task) => {
+                    const isUpdating = pendingTaskIds.includes(task.id);
+                    const isHighlighted = task.completionRequested;
+
+                    return (
+                      <View
+                        key={task.id}
+                        style={[
+                          s.taskCard,
+                          {
+                            backgroundColor: isHighlighted
+                              ? theme.colors.primaryLight
+                              : theme.colors.surfaceAlt,
+                            borderColor: isHighlighted ? theme.colors.primary : "transparent",
+                          },
+                        ]}
+                      >
+                        <View style={s.taskTopRow}>
+                          <Pressable
+                            onPress={() => toggleTask(task)}
+                            disabled={isUpdating}
+                            style={[
+                              s.checkbox,
+                              {
+                                borderColor: isHighlighted
+                                  ? theme.colors.primary
+                                  : theme.colors.textMuted,
+                                backgroundColor: isHighlighted
+                                  ? theme.colors.primary
+                                  : theme.colors.surface,
+                              },
+                            ]}
+                          >
+                            {isHighlighted ? (
+                              <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                            ) : null}
+                          </Pressable>
+
+                          <View style={s.taskContent}>
+                            <Text style={[s.taskTitle, { color: theme.colors.text }]}>{task.title}</Text>
+
+                            <View style={s.taskMetaRow}>
+                              <View style={[s.typeBadge, { backgroundColor: "#E8C5FC" }]}>
+                                <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                                  {task.type || "Task"}
+                                </Text>
+                              </View>
+
+                              <View style={s.metricGroup}>
+                                <View style={s.metricItem}>
+                                  <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                                    {task.xp}
+                                  </Text>
+                                  <Image
+                                    source={require("../../assets/icons/xp.png")}
+                                    style={s.metricIcon}
+                                  />
+                                </View>
+
+                                <View style={s.metricItem}>
+                                  <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                                    {task.rewardPoints}
+                                  </Text>
+                                  <Image
+                                    source={require("../../assets/icons/reward_points.png")}
+                                    style={s.metricIcon}
+                                  />
+                                </View>
+                              </View>
+                            </View>
+
+                            <Text style={[s.dateText, { color: theme.colors.textMuted }]}>
+                              {formatRange(task.startDate, task.endDate)}
+                            </Text>
+
+                            {task.completionRequested ? (
+                              <View style={[s.statusPill, { backgroundColor: theme.colors.primary }]}>
+                                <Text style={s.statusPillText}>Awaiting parent validation</Text>
+                              </View>
+                            ) : null}
+                          </View>
+                        </View>
+                      </View>
+                    );
+                  })
+                )}
+              </View>
+            </ImageBackground>
+          </View>
+
+          <View style={s.shortcutsRow}>
+            {homeShortcuts.map((shortcut) => (
+              <Pressable
+                key={shortcut.key}
+                onPress={() => router.push(shortcut.route as never)}
+                style={[
+                  s.shortcutCard,
+                  {
+                    backgroundColor: shortcut.backgroundColor,
+                    borderColor: shortcut.borderColor,
+                  },
+                ]}
+              >
+                <Text style={s.shortcutTitle}>{shortcut.title}</Text>
+
+                <Ionicons
+                  name={shortcut.icon as keyof typeof Ionicons.glyphMap}
+                  size={32}
+                  color="#FFFFFF"
+                />
+              </Pressable>
+            ))}
+          </View>
+        </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -317,25 +326,26 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingTop: 18,
+    paddingBottom: 104,
     gap: 16,
-  },
-  sectionHeader: {
-    gap: 8,
-  },
-  pageTitle: {
-    fontSize: 32,
-    fontWeight: "800",
-  },
-  pageSubtitle: {
-    fontSize: 16,
-    lineHeight: 23,
   },
   sectionCard: {
     borderRadius: 22,
     borderWidth: 1,
+    gap: 12,
+    overflow: "hidden",
+  },
+  sectionCardFill: {
+    flex: 1,
+  },
+  sectionCardBackgroundImage: {
+    borderRadius: 22,
+  },
+  sectionCardOverlay: {
     padding: 18,
     gap: 12,
+    backgroundColor: "rgba(255,255,255,0.78)",
   },
   sectionTitle: {
     fontSize: 22,
@@ -431,25 +441,30 @@ const s = StyleSheet.create({
     fontSize: 12,
     fontWeight: "800",
   },
+  shortcutsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
   shortcutCard: {
-    borderRadius: 22,
+    flex: 1,
+    minHeight: 92,
+    borderRadius: 20,
     borderWidth: 1,
-    padding: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    gap: 16,
+    justifyContent: "center",
+    gap: 12,
   },
-  shortcutTextWrap: {
+  shortcutTitle: {
     flex: 1,
-    gap: 6,
-  },
-  shortcutSubtitle: {
-    fontSize: 15,
-    lineHeight: 22,
-  },
-  shortcutOpenText: {
-    fontSize: 14,
+    color: "#FFFFFF",
+    fontSize: 18,
     fontWeight: "800",
+    lineHeight: 24,
+    textShadowColor: "rgba(31, 41, 55, 0.32)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
 });

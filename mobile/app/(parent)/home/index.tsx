@@ -1,121 +1,94 @@
-import { useCallback, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
-import { useFocusEffect, useRouter } from "expo-router";
+import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../../components/AppHeader";
-import { api } from "../../../src/services/api";
+import CurvedScreenBody from "../../../components/CurvedScreenBody";
 import { useTheme } from "../../../src/context/ThemeContext";
 
-const catalogueCards = [
+const quickActions = [
   {
-    key: "packages",
-    title: "Packages",
-    subtitle: "Browse saved admin packages by age group",
-    image: require("../../../assets/rewards/family.png"),
+    key: "discover",
+    title: "Discover Packages",
+    route: "/(parent)/explore",
+    icon: "search",
+    background: require("../../../assets/backgrounds/todayTasks.png"),
   },
   {
-    key: "my-tasks",
-    title: "My Tasks",
-    subtitle: "Open your custom parent tasks catalogue",
-    image: require("../../../assets/rewards/default.png"),
+    key: "catalogue",
+    title: "My Catalogue",
+    route: "/(parent)/home/_screens/my-catalogue",
+    icon: "albums",
+    background: require("../../../assets/backgrounds/thisWeekTasks.png"),
   },
   {
-    key: "my-rewards",
-    title: "My Rewards",
-    subtitle: "Open your custom parent rewards catalogue",
-    image: require("../../../assets/rewards/mystery.png"),
+    key: "children",
+    title: "Manage Children",
+    route: "/(parent)/distribution",
+    icon: "people",
+    background: require("../../../assets/backgrounds/nextWeekTasks.png"),
+  },
+  {
+    key: "ai",
+    title: "Consult AISuperNanny",
+    route: "/(parent)/aiSuperNanny",
+    icon: "sparkles",
+    background: require("../../../assets/backgrounds/wishes.png"),
   },
 ] as const;
 
 export default function ParentHomeIndex() {
   const router = useRouter();
   const theme = useTheme();
-  const [packageCount, setPackageCount] = useState(0);
-  const [taskCount, setTaskCount] = useState(0);
-  const [rewardCount, setRewardCount] = useState(0);
-
-  const fetchCatalogueCount = useCallback(async () => {
-    const [packagesRes, tasksRes, rewardsRes] = await Promise.all([
-      api.get("/parent/catalog/packages"),
-      api.get("/parent/catalog/tasks"),
-      api.get("/parent/catalog/rewards"),
-    ]);
-
-    setPackageCount(packagesRes.data.data.length);
-    setTaskCount(tasksRes.data.data.length);
-    setRewardCount(rewardsRes.data.data.length);
-  }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      fetchCatalogueCount();
-    }, [fetchCatalogueCount])
-  );
-
-  const handlePress = (key: string) => {
-    if (key === "packages") {
-      router.push("/(parent)/home/_screens/packages-age-groups");
-      return;
-    }
-
-    if (key === "my-tasks") {
-      router.push("/(parent)/home/_screens/my-tasks");
-      return;
-    }
-
-    router.push("/(parent)/home/_screens/my-rewards");
-  };
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
+      <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={[s.pageTitle, { color: theme.colors.text }]}>My Catalogue</Text>
-        <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
-          Open one of your catalogue sections to manage and review what can be distributed.
-        </Text>
+        <View style={s.heroBlock}>
+          <Text style={[s.heroTitle, { color: theme.colors.text }]}>Welcome back, Parent!</Text>
+          <Text style={[s.heroSubtitle, { color: theme.colors.textMuted }]}>
+            Bring a little more joy, structure, and motivation into your family&apos;s routine.
+            Discover inspiring packages, organize your catalogue, manage your children&apos;s
+            activities, and ask AI SuperNanny for thoughtful support whenever you need it.
+          </Text>
+        </View>
 
-        {catalogueCards.map((card) => {
-          const count =
-            card.key === "packages"
-              ? packageCount
-              : card.key === "my-tasks"
-                ? taskCount
-                : rewardCount;
-
-          return (
+        <View style={s.quickActionsGrid}>
+          {quickActions.map((action) => (
             <Pressable
-              key={card.key}
-              style={[
-                s.card,
-                {
-                  backgroundColor: theme.colors.primary,
-                  borderColor: theme.colors.border,
-                },
-              ]}
-              onPress={() => handlePress(card.key)}
+              key={action.key}
+              onPress={() => router.push(action.route as never)}
+              style={s.quickActionCard}
             >
-              <Image source={card.image} style={s.cardImage} />
-
-              <View style={s.cardTextWrap}>
-                <Text style={[s.cardTitle, { color: theme.colors.text }]}>{card.title}</Text>
-                <Text style={{ color: theme.colors.textMuted }}>{card.subtitle}</Text>
-              </View>
-
-              <View
-                style={[
-                  s.countBadge,
-                  {
-                    backgroundColor: theme.colors.tabIconActive,
-                  },
-                ]}
+              <ImageBackground
+                source={action.background}
+                resizeMode="cover"
+                imageStyle={s.quickActionBackgroundImage}
+                style={s.quickActionFill}
               >
-                <Text style={s.countText}>{count}</Text>
-              </View>
+                <View style={s.quickActionOverlay}>
+                  <Text style={s.quickActionTitle}>{action.title}</Text>
+                  <Ionicons
+                    name={action.icon as keyof typeof Ionicons.glyphMap}
+                    size={30}
+                    color="#FFFFFF"
+                  />
+                </View>
+              </ImageBackground>
             </Pressable>
-          );
-        })}
+          ))}
+        </View>
+
+        <View style={[s.footerIllustrationCard, { backgroundColor: theme.colors.background }]}>
+          <Image
+            source={require("../../../assets/images/ParentHomePage_cutout.png")}
+            style={s.footerImage}
+          />
+        </View>
       </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -126,56 +99,76 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 18,
     paddingBottom: 32,
-    gap: 14,
+    gap: 18,
   },
-  pageTitle: {
-    fontSize: 28,
+  heroBlock: {
+    gap: 8,
+  },
+  heroTitle: {
+    fontSize: 34,
     fontWeight: "800",
+    lineHeight: 40,
   },
-  pageSubtitle: {
-    marginTop: 8,
-    marginBottom: 10,
-    lineHeight: 20,
+  heroSubtitle: {
+    fontSize: 18,
+    lineHeight: 27,
   },
-  card: {
+  quickActionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    rowGap: 14,
+  },
+  quickActionCard: {
+    width: "48%",
+    minHeight: 118,
     borderRadius: 22,
-    padding: 16,
+    overflow: "hidden",
+  },
+  quickActionFill: {
+    flex: 1,
+  },
+  quickActionBackgroundImage: {
+    borderRadius: 22,
+  },
+  quickActionOverlay: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    backgroundColor: "rgba(52, 36, 84, 0.34)",
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
-    borderWidth: 1,
-    shadowColor: "#8F7AD8",
-    shadowOpacity: 0.08,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 3,
+    justifyContent: "space-between",
+    gap: 12,
   },
-  cardImage: {
-    width: 72,
-    height: 72,
-    resizeMode: "contain",
-    borderRadius: 24,
-  },
-  cardTextWrap: {
+  quickActionTitle: {
     flex: 1,
-    gap: 4,
-  },
-  cardTitle: {
+    color: "#FFFFFF",
     fontSize: 20,
     fontWeight: "800",
+    lineHeight: 26,
+    textShadowColor: "rgba(31, 41, 55, 0.28)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
-  countBadge: {
-    minWidth: 44,
-    height: 44,
-    borderRadius: 22,
+  footerImage: {
+    width: "100%",
+    height: 180,
+    resizeMode: "contain",
+    marginTop: 6,
+  },
+  footerIllustrationCard: {
+    width: "100%",
+    minHeight: 200,
+    borderRadius: 24,
     alignItems: "center",
-    justifyContent: "center",
-    paddingHorizontal: 10,
-  },
-  countText: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-    fontSize: 16,
+    justifyContent: "flex-end",
+    paddingHorizontal: 14,
+    paddingTop: 18,
+    paddingBottom: 8,
+    overflow: "hidden",
+    marginTop: 2,
   },
 });

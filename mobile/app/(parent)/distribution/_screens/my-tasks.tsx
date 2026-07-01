@@ -2,6 +2,7 @@ import { useCallback, useState } from "react";
 import {
   Alert,
   Image,
+  ImageBackground,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -11,6 +12,8 @@ import {
 } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import CurvedScreenBody from "../../../../components/CurvedScreenBody";
 import { useTheme } from "../../../../src/context/ThemeContext";
 import { api } from "../../../../src/services/api";
 import { TaskItem } from "../../../../constants/parentCatalogue";
@@ -30,6 +33,7 @@ const isNaturalNumber = (value: string) => /^(0|[1-9]\d*)$/.test(value.trim());
 export default function DistributionMyTasksScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [title, setTitle] = useState("");
   const [xp, setXp] = useState("");
@@ -153,25 +157,24 @@ export default function DistributionMyTasksScreen() {
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <View
-        style={[
-          s.topBar,
-          {
-            backgroundColor: theme.colors.surface,
-            borderBottomColor: theme.colors.border,
-          },
-        ]}
+      <ImageBackground
+        source={require("../../../../assets/images/ParentAppHeader.png")}
+        resizeMode="cover"
+        style={[s.topBar, { paddingTop: insets.top + 14 }]}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
-        >
-          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
-        </Pressable>
+        <View style={s.topBarContent}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+          >
+            <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+          </Pressable>
 
-        <Text style={[s.topBarTitle, { color: theme.colors.text }]}>My Tasks</Text>
-      </View>
+          <Text style={[s.topBarTitle, { color: theme.colors.text }]}>My Tasks</Text>
+        </View>
+      </ImageBackground>
 
+      <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
         <Pressable
           style={[s.newButton, { backgroundColor: theme.colors.tabIconActive }]}
@@ -415,6 +418,7 @@ export default function DistributionMyTasksScreen() {
           ))
         )}
       </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -424,13 +428,14 @@ const s = StyleSheet.create({
     flex: 1,
   },
   topBar: {
-    paddingTop: 56,
-    paddingBottom: 18,
-    paddingHorizontal: 16,
+    paddingBottom: 34,
+    paddingHorizontal: 20,
+  },
+  topBarContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderBottomWidth: 1,
+    minHeight: 42,
   },
   backButton: {
     width: 40,
@@ -446,6 +451,7 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 20,
+    paddingTop: 28,
     paddingBottom: 32,
     gap: 14,
   },

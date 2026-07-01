@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
   Image,
+  ImageBackground,
   Pressable,
   RefreshControl,
   ScrollView,
@@ -12,6 +13,7 @@ import {
 import { useFocusEffect, useRouter } from "expo-router";
 
 import AppHeader from "../../../components/AppHeader";
+import CurvedScreenBody from "../../../components/CurvedScreenBody";
 import { formatItemTypeLabel } from "../../../constants/itemTypes";
 import { getRewardImage } from "../../../constants/rewardImages";
 import { api } from "../../../src/services/api";
@@ -52,6 +54,8 @@ const initialData: RewardsPageData = {
   wishlist: [],
   notifications: [],
 };
+
+const shopStripeColors = ["#D85B50", "#F7E8EC", "#D85B50", "#F7E8EC", "#D85B50", "#F7E8EC"] as const;
 
 export default function ChildRewardsPage() {
   const theme = useTheme();
@@ -139,16 +143,17 @@ export default function ChildRewardsPage() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
-      <ScrollView
-        contentContainerStyle={s.content}
-        refreshControl={
-          <RefreshControl
-            refreshing={refreshing}
-            onRefresh={onRefresh}
-            tintColor={theme.colors.primary}
-          />
-        }
-      >
+      <CurvedScreenBody>
+        <ScrollView
+          contentContainerStyle={s.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={theme.colors.primary}
+            />
+          }
+        >
         <View style={s.pageHeader}>
           <Text style={[s.pageTitle, { color: theme.colors.text }]}>Rewards</Text>
           <Text style={[s.pageSubtitle, { color: theme.colors.textMuted }]}>
@@ -158,160 +163,151 @@ export default function ChildRewardsPage() {
 
         <View
           style={[
-            s.sectionCard,
+            s.shopSectionCard,
             {
-              backgroundColor: theme.colors.surface,
               borderColor: theme.colors.border,
             },
           ]}
         >
-          <View style={s.sectionHeader}>
-            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Reward Shop</Text>
-            <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
-              <Text style={s.countBadgeText}>{data.rewardShop.length}</Text>
+          <ImageBackground
+            source={require("../../../assets/backgrounds/rewardShop.png")}
+            resizeMode="cover"
+            imageStyle={s.shopCardBackgroundImage}
+            style={s.shopCardBackground}
+          >
+            <View style={s.shopAwningWrap}>
+              <View style={s.shopAwningOverlay} />
+
+              <View style={s.shopStripeRow}>
+                {shopStripeColors.map((color, index) => (
+                  <View key={index} style={[s.shopStripePillar, { backgroundColor: color }]} />
+                ))}
+              </View>
+
+              <View style={s.sectionHeaderOverlay}>
+                <Text style={[s.sectionTitle, s.shopSectionTitle]}>Rewards Shop</Text>
+                <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
+                  <Text style={s.countBadgeText}>{data.rewardShop.length}</Text>
+                </View>
+              </View>
             </View>
-          </View>
 
-          {data.rewardShop.length === 0 ? (
-            <View style={[s.emptyCard, { backgroundColor: theme.colors.surfaceAlt }]}>
-              <Text style={[s.emptyTitle, { color: theme.colors.text }]}>No rewards right now</Text>
-              <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
-                Ask your parent to activate some rewards for you.
-              </Text>
-            </View>
-          ) : (
-            data.rewardShop.map((reward) => {
-              const isPending = pendingRewardIds.includes(reward.id);
-              const canAfford = (user?.rewardPoints ?? 0) >= reward.price;
+            <View style={s.shopContent}>
+            {data.rewardShop.length === 0 ? (
+              <View style={[s.emptyCard, { backgroundColor: theme.colors.surfaceAlt }]}>
+                <Text style={[s.emptyTitle, { color: theme.colors.text }]}>No rewards right now</Text>
+                <Text style={[s.emptyText, { color: theme.colors.textMuted }]}>
+                  Ask your parent to activate some rewards for you.
+                </Text>
+              </View>
+            ) : (
+              data.rewardShop.map((reward) => {
+                const isPending = pendingRewardIds.includes(reward.id);
+                const canAfford = (user?.rewardPoints ?? 0) >= reward.price;
 
-              return (
-                <View
-                  key={reward.id}
-                  style={[s.rewardCard, { backgroundColor: theme.colors.surfaceAlt }]}
-                >
-                  <View style={s.rewardTopRow}>
-                    <Image source={getRewardImage(reward.type)} style={s.rewardImage} />
+                return (
+                  <View
+                    key={reward.id}
+                    style={[s.rewardCard, { backgroundColor: theme.colors.surfaceAlt }]}
+                  >
+                    <View style={s.rewardTopRow}>
+                      <Image source={getRewardImage(reward.type)} style={s.rewardImage} />
 
-                    <View style={s.rewardContent}>
-                      <Text style={[s.rewardTitle, { color: theme.colors.text }]}>{reward.title}</Text>
+                      <View style={s.rewardContent}>
+                        <Text style={[s.rewardTitle, { color: theme.colors.text }]}>{reward.title}</Text>
 
-                      <View style={s.rewardMetaRow}>
-                        <View style={[s.typeBadge, { backgroundColor: theme.colors.surface }]}>
-                          <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
-                            {formatItemTypeLabel(reward.type)}
-                          </Text>
-                        </View>
+                        <View style={s.rewardMetaRow}>
+                          <View style={[s.typeBadge, { backgroundColor: "#E8C5FC" }]}>
+                            <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
+                              {formatItemTypeLabel(reward.type)}
+                            </Text>
+                          </View>
 
-                        <View style={s.metricItem}>
-                          <Text style={[s.metricValue, { color: theme.colors.text }]}>
-                            {reward.price}
-                          </Text>
-                          <Image
-                            source={require("../../../assets/icons/reward_points.png")}
-                            style={s.metricIcon}
-                          />
+                          <View style={s.metricItem}>
+                            <Text style={[s.metricValue, { color: theme.colors.text }]}>
+                              {reward.price}
+                            </Text>
+                            <Image
+                              source={require("../../../assets/icons/reward_points.png")}
+                              style={s.metricIcon}
+                            />
+                          </View>
                         </View>
                       </View>
                     </View>
-                  </View>
 
-                  <View style={s.rewardBottomRow}>
-                    <Text numberOfLines={1} style={[s.dateText, { color: theme.colors.textMuted }]}>
-                      Available until {reward.endDate}
-                    </Text>
+                    <View style={s.rewardBottomRow}>
+                      <Text numberOfLines={1} style={[s.dateText, { color: theme.colors.textMuted }]}>
+                        Available until {reward.endDate}
+                      </Text>
 
-                    <Pressable
-                      onPress={() => buyReward(reward)}
-                      disabled={!canAfford || isPending}
-                      style={[
-                        s.buyButton,
-                        {
-                          backgroundColor: canAfford ? theme.colors.primary : "#A8AFB8",
-                          opacity: isPending ? 0.7 : 1,
-                        },
-                      ]}
-                    >
-                      <Text style={s.buyButtonText}>Buy</Text>
-                      {!canAfford ? (
-                        <View style={s.lockOverlay}>
-                          <Image
-                            source={require("../../../assets/icons/padlock.png")}
-                            style={s.lockIcon}
-                          />
-                        </View>
-                      ) : null}
-                    </Pressable>
+                      <Pressable
+                        onPress={() => buyReward(reward)}
+                        disabled={!canAfford || isPending}
+                        style={[
+                          s.buyButton,
+                          {
+                            backgroundColor: canAfford ? theme.colors.primary : "#A8AFB8",
+                            opacity: isPending ? 0.7 : 1,
+                          },
+                        ]}
+                      >
+                        <Text style={s.buyButtonText}>Buy</Text>
+                        {!canAfford ? (
+                          <View style={s.lockOverlay}>
+                            <Image
+                              source={require("../../../assets/icons/padlock.png")}
+                              style={s.lockIcon}
+                            />
+                          </View>
+                        ) : null}
+                      </Pressable>
+                    </View>
                   </View>
-                </View>
-              );
-            })
-          )}
+                );
+              })
+            )}
+            </View>
+          </ImageBackground>
         </View>
 
-        <Pressable
-          onPress={() => router.push("/(child)/rewards/_screens/my-rewards" as never)}
-          style={[
-            s.sectionCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
-          <View style={s.sectionHeader}>
-            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>My Rewards</Text>
+        <View style={s.shortcutsRow}>
+          <Pressable
+            onPress={() => router.push("/(child)/rewards/_screens/my-rewards" as never)}
+            style={[
+              s.shortcutButton,
+              {
+                backgroundColor: "#2A9D8F",
+                borderColor: "#58B8A8",
+              },
+            ]}
+          >
+            <Text style={s.shortcutButtonTitle}>My Rewards</Text>
             <View style={[s.countBadge, { backgroundColor: theme.colors.accent }]}>
               <Text style={s.countBadgeText}>
                 {data.myRewards.length + data.rewardHistory.length}
               </Text>
             </View>
-          </View>
+          </Pressable>
 
-          <Text style={[s.sectionDescription, { color: theme.colors.textMuted }]}>
-            Open your full reward collection, including granted history.
-          </Text>
-
-          <View style={[s.shortcutCardBody, { backgroundColor: theme.colors.surfaceAlt }]}>
-            <Text style={[s.shortcutCardTitle, { color: theme.colors.text }]}>
-              Open My Rewards
-            </Text>
-            <Text style={[s.shortcutCardText, { color: theme.colors.textMuted }]}>
-              See purchased rewards and the full granted history in a dedicated page.
-            </Text>
-            <Text style={[s.openLinkText, { color: theme.colors.primary }]}>Open</Text>
-          </View>
-        </Pressable>
-
-        <Pressable
-          onPress={() => router.push("/(child)/rewards/_screens/wishlist" as never)}
-          style={[
-            s.sectionCard,
-            {
-              backgroundColor: theme.colors.surface,
-              borderColor: theme.colors.border,
-            },
-          ]}
-        >
-          <View style={s.sectionHeader}>
-            <Text style={[s.sectionTitle, { color: theme.colors.text }]}>Wishlist</Text>
+          <Pressable
+            onPress={() => router.push("/(child)/rewards/_screens/wishlist" as never)}
+            style={[
+              s.shortcutButton,
+              {
+                backgroundColor: "#F4A261",
+                borderColor: "#F7B78B",
+              },
+            ]}
+          >
+            <Text style={s.shortcutButtonTitle}>Wishlist</Text>
             <View style={[s.countBadge, { backgroundColor: theme.colors.primary }]}>
               <Text style={s.countBadgeText}>{data.wishlist.length}</Text>
             </View>
-          </View>
-
-          <Text style={[s.sectionDescription, { color: theme.colors.textMuted }]}>
-            Keep your reward ideas in one place and open the full wishlist page when needed.
-          </Text>
-
-          <View style={[s.shortcutCardBody, { backgroundColor: theme.colors.surfaceAlt }]}>
-            <Text style={[s.shortcutCardTitle, { color: theme.colors.text }]}>Open Wishlist</Text>
-            <Text style={[s.shortcutCardText, { color: theme.colors.textMuted }]}>
-              Add new wishes and review everything you have asked for so far.
-            </Text>
-            <Text style={[s.openLinkText, { color: theme.colors.primary }]}>Open</Text>
-          </View>
-        </Pressable>
-      </ScrollView>
+          </Pressable>
+        </View>
+        </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -322,7 +318,8 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
-    paddingBottom: 32,
+    paddingTop: 18,
+    paddingBottom: 104,
     gap: 16,
   },
   pageHeader: {
@@ -342,7 +339,27 @@ const s = StyleSheet.create({
     padding: 18,
     gap: 14,
   },
+  shopSectionCard: {
+    borderRadius: 22,
+    borderWidth: 1,
+    overflow: "hidden",
+  },
+  shopCardBackground: {
+    flex: 1,
+  },
+  shopCardBackgroundImage: {
+    borderRadius: 22,
+  },
   sectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
+  sectionHeaderOverlay: {
+    position: "absolute",
+    left: 18,
+    right: 18,
+    top: 18,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
@@ -351,22 +368,71 @@ const s = StyleSheet.create({
     fontSize: 22,
     fontWeight: "800",
   },
-  sectionDescription: {
-    fontSize: 15,
-    lineHeight: 22,
+  shopAwningWrap: {
+    height: 118,
+    position: "relative",
+    justifyContent: "flex-start",
   },
-  shortcutCardBody: {
+  shopAwningOverlay: {
+    position: "absolute",
+    inset: 0,
+    backgroundColor: "transparent",
+  },
+  shopStripeRow: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    height: 104,
+    flexDirection: "row",
+    justifyContent: "flex-start",
+    alignItems: "flex-start",
+  },
+  shopStripePillar: {
+    flex: 1,
+    height: 98,
+    borderBottomLeftRadius: 22,
+    borderBottomRightRadius: 22,
+  },
+  shopContent: {
+    paddingHorizontal: 18,
+    paddingBottom: 18,
+    paddingTop: 22,
+    gap: 14,
+  },
+  shopSectionTitle: {
+    color: "#1F2937",
+    fontSize: 26,
+    fontWeight: "900",
+    textShadowColor: "rgba(255, 250, 240, 0.9)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
+  shortcutsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  shortcutButton: {
+    flex: 1,
+    minHeight: 84,
     borderRadius: 20,
-    padding: 16,
-    gap: 8,
+    borderWidth: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    gap: 12,
   },
-  shortcutCardTitle: {
+  shortcutButtonTitle: {
+    flex: 1,
+    color: "#FFFFFF",
     fontSize: 18,
     fontWeight: "800",
-  },
-  shortcutCardText: {
-    fontSize: 15,
-    lineHeight: 22,
+    lineHeight: 24,
+    textShadowColor: "rgba(31, 41, 55, 0.32)",
+    textShadowOffset: { width: 0, height: 2 },
+    textShadowRadius: 4,
   },
   countBadge: {
     minWidth: 36,
@@ -490,21 +556,5 @@ const s = StyleSheet.create({
     width: 28,
     height: 28,
     resizeMode: "contain",
-  },
-  statusBadge: {
-    alignSelf: "flex-start",
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  statusBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 12,
-    fontWeight: "800",
-  },
-  openLinkText: {
-    fontSize: 14,
-    fontWeight: "800",
-    alignSelf: "flex-start",
   },
 });

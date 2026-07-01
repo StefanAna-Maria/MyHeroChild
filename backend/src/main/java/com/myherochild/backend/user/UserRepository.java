@@ -12,5 +12,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
     List<User> findAllByParentIdAndRoleOrderByUsernameAsc(Long parentId, UserRole role);
 
     @EntityGraph(attributePaths = "catalogPackages")
+    List<User> findAllByRole(UserRole role);
+
+    @EntityGraph(attributePaths = "catalogPackages")
     Optional<User> findWithCatalogPackagesByUsername(String username);
 }

@@ -116,7 +116,7 @@ export default function Login() {
           <View style={s.blobBottom} />
 
           <View style={s.header}>
-            <Text style={s.title}>MyHeroChild</Text>
+            <Text style={s.title}>Little Achievers</Text>
             <Text style={s.subtitle}>Welcome back</Text>
           </View>
 

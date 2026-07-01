@@ -5,6 +5,8 @@ import com.myherochild.backend.child.dto.ChildAssignedTaskResponse;
 import com.myherochild.backend.child.dto.ChildDailyBonusResponse;
 import com.myherochild.backend.child.dto.ChildHomeResponse;
 import com.myherochild.backend.child.dto.ChildNotificationResponse;
+import com.myherochild.backend.child.dto.ChildActivityPointResponse;
+import com.myherochild.backend.child.dto.ChildProfileResponse;
 import com.myherochild.backend.child.dto.ChildRewardsResponse;
 import com.myherochild.backend.child.dto.ChildTaskValidationRequest;
 import com.myherochild.backend.child.dto.ChildTasksResponse;
@@ -29,6 +31,8 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collections;
+import java.time.format.TextStyle;
+import java.util.Locale;
 
 @Service
 @RequiredArgsConstructor
@@ -163,6 +167,66 @@ public class ChildHomeService {
         }
 
         return response;
+    }
+
+    public ChildProfileResponse getProfile(String username) {
+        User child = getChild(username);
+        LocalDate today = LocalDate.now();
+        parentAssignedTaskStatusService.syncExpiredTasks();
+        parentAssignedRewardStatusService.syncExpiredRewards();
+
+        java.util.List<ParentAssignedTask> allTasks =
+                parentAssignedTaskRepository.findAllByChildIdOrderByCreatedAtDesc(child.getId());
+        java.util.List<ParentAssignedReward> allRewards =
+                parentAssignedRewardRepository.findAllByChildIdOrderByCreatedAtDesc(child.getId());
+
+        java.util.List<ChildActivityPointResponse> weeklyActivity = java.util.stream.IntStream.rangeClosed(0, 6)
+                .mapToObj(offset -> today.minusDays(6L - offset))
+                .map(day -> ChildActivityPointResponse.builder()
+                        .label(day.getDayOfWeek().getDisplayName(TextStyle.SHORT, Locale.ENGLISH))
+                        .approvedTasks((int) allTasks.stream()
+                                .filter(ParentAssignedTask::isReviewed)
+                                .filter(task -> Boolean.TRUE.equals(task.getApproved()))
+                                .filter(task -> task.getReviewedAt() != null)
+                                .filter(task -> task.getReviewedAt().toLocalDate().isEqual(day))
+                                .count())
+                        .grantedRewards((int) allRewards.stream()
+                                .filter(ParentAssignedReward::isGranted)
+                                .filter(reward -> reward.getGrantedAt() != null)
+                                .filter(reward -> reward.getGrantedAt().toLocalDate().isEqual(day))
+                                .count())
+                        .build())
+                .toList();
+
+        return ChildProfileResponse.builder()
+                .id(child.getId())
+                .username(child.getUsername())
+                .avatar(child.getAvatar())
+                .level(child.getLevel())
+                .activeTasksCount((int) parentAssignedTaskRepository
+                        .countByChildIdAndReviewedFalseAndExpiredFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                                child.getId(),
+                                today,
+                                today
+                        ))
+                .availableRewardsCount((int) parentAssignedRewardRepository
+                        .countByChildIdAndClaimedFalseAndExpiredFalseAndStartDateLessThanEqualAndEndDateGreaterThanEqual(
+                                child.getId(),
+                                today,
+                                today
+                        ))
+                .completedTasksCount((int) allTasks.stream()
+                        .filter(ParentAssignedTask::isReviewed)
+                        .filter(task -> Boolean.TRUE.equals(task.getApproved()))
+                        .count())
+                .purchasedRewardsCount((int) allRewards.stream()
+                        .filter(ParentAssignedReward::isClaimed)
+                        .count())
+                .grantedRewardsCount((int) allRewards.stream()
+                        .filter(ParentAssignedReward::isGranted)
+                        .count())
+                .weeklyActivity(weeklyActivity)
+                .build();
     }
 
     public ChildDailyBonusResponse claimDailyBonus(String username) {

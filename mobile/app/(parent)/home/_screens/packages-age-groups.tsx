@@ -1,7 +1,9 @@
 import { useCallback, useMemo, useState } from "react";
-import { Image, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Image, ImageBackground, Pressable, ScrollView, StyleSheet, Text, View } from "react-native";
 import { useFocusEffect, useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import CurvedScreenBody from "../../../../components/CurvedScreenBody";
 import { api } from "../../../../src/services/api";
 import { useTheme } from "../../../../src/context/ThemeContext";
 import {
@@ -13,6 +15,7 @@ import {
 export default function HomePackagesAgeGroupsScreen() {
   const router = useRouter();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
   const [cataloguePackages, setCataloguePackages] = useState<PackageItem[]>([]);
 
   const fetchCatalogue = useCallback(async () => {
@@ -45,29 +48,25 @@ export default function HomePackagesAgeGroupsScreen() {
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
-      <View
-        style={[
-          s.topBar,
-          {
-            backgroundColor: theme.colors.surface,
-            borderBottomColor: theme.colors.border,
-          },
-        ]}
+      <ImageBackground
+        source={require("../../../../assets/images/ParentAppHeader.png")}
+        resizeMode="cover"
+        style={[s.topBar, { paddingTop: insets.top + 14 }]}
       >
-        <Pressable
-          onPress={() => router.back()}
-          style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
-        >
-          <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
-        </Pressable>
+        <View style={s.topBarContent}>
+          <Pressable
+            onPress={() => router.back()}
+            style={[s.backButton, { backgroundColor: theme.colors.surfaceAlt }]}
+          >
+            <Ionicons name="arrow-back" size={22} color={theme.colors.text} />
+          </Pressable>
 
-        <Text style={[s.topBarTitle, { color: theme.colors.text }]}>Packages</Text>
-      </View>
+          <Text style={[s.topBarTitle, { color: theme.colors.text }]}>Saved Packages</Text>
+        </View>
+      </ImageBackground>
 
+      <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
-        <Text style={[s.subtitle, { color: theme.colors.textMuted }]}>
-          Open an age category to browse the saved packages in your catalogue.
-        </Text>
 
         {AGE_CATEGORIES.map((category) => (
           <Pressable
@@ -99,6 +98,7 @@ export default function HomePackagesAgeGroupsScreen() {
           </Pressable>
         ))}
       </ScrollView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -108,13 +108,14 @@ const s = StyleSheet.create({
     flex: 1,
   },
   topBar: {
-    paddingTop: 56,
-    paddingBottom: 18,
-    paddingHorizontal: 16,
+    paddingBottom: 34,
+    paddingHorizontal: 20,
+  },
+  topBarContent: {
     flexDirection: "row",
     alignItems: "center",
     gap: 12,
-    borderBottomWidth: 1,
+    minHeight: 42,
   },
   backButton: {
     width: 40,
@@ -130,12 +131,9 @@ const s = StyleSheet.create({
   },
   content: {
     padding: 16,
+    paddingTop: 28,
     paddingBottom: 32,
     gap: 14,
-  },
-  subtitle: {
-    marginBottom: 4,
-    lineHeight: 20,
   },
   card: {
     borderRadius: 22,

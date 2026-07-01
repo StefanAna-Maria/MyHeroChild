@@ -91,7 +91,7 @@ export default function ChildRewardShopScreen() {
           <Ionicons name="arrow-back" size={24} color={theme.colors.text} />
         </Pressable>
         <View style={s.headerTextWrap}>
-          <Text style={[s.headerTitle, { color: theme.colors.text }]}>Reward Shop</Text>
+          <Text style={[s.headerTitle, { color: theme.colors.text }]}>Rewards Shop</Text>
           <Text style={[s.headerSubtitle, { color: theme.colors.textMuted }]}>
             Spend your points on active rewards.
           </Text>
@@ -119,7 +119,7 @@ export default function ChildRewardShopScreen() {
                 <View style={s.rewardContent}>
                   <Text style={[s.rewardTitle, { color: theme.colors.text }]}>{reward.title}</Text>
                   <View style={s.rewardMetaRow}>
-                    <View style={[s.typeBadge, { backgroundColor: theme.colors.surfaceAlt }]}>
+                    <View style={[s.typeBadge, { backgroundColor: "#E8C5FC" }]}>
                       <Text style={[s.typeBadgeText, { color: theme.colors.textMuted }]}>
                         {formatItemTypeLabel(reward.type)}
                       </Text>
@@ -159,9 +159,15 @@ const s = StyleSheet.create({
   header: { paddingTop: 60, paddingHorizontal: 20, paddingBottom: 18, flexDirection: "row", alignItems: "center", gap: 16 },
   backButton: { width: 52, height: 52, borderRadius: 26, alignItems: "center", justifyContent: "center" },
   headerTextWrap: { flex: 1, gap: 4 },
-  headerTitle: { fontSize: 24, fontWeight: "800" },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "900",
+    textShadowColor: "rgba(255, 250, 240, 0.9)",
+    textShadowOffset: { width: 0, height: 0 },
+    textShadowRadius: 8,
+  },
   headerSubtitle: { fontSize: 15, lineHeight: 21 },
-  content: { padding: 16, paddingBottom: 32, gap: 14 },
+  content: { padding: 16, paddingBottom: 104, gap: 14 },
   emptyCard: { borderRadius: 22, borderWidth: 1, padding: 18, gap: 8 },
   emptyTitle: { fontSize: 20, fontWeight: "800" },
   emptyText: { fontSize: 15, lineHeight: 22 },

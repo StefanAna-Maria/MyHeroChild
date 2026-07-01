@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 import AppHeader from "../../components/AppHeader";
+import CurvedScreenBody from "../../components/CurvedScreenBody";
 import { api } from "../../src/services/api";
 import { useTheme } from "../../src/context/ThemeContext";
 
@@ -148,10 +149,11 @@ export default function AiSuperNanny() {
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
       <AppHeader />
 
-      <KeyboardAvoidingView
-        style={s.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <CurvedScreenBody style={s.flex}>
+        <KeyboardAvoidingView
+          style={s.flex}
+          behavior={Platform.OS === "ios" ? "padding" : undefined}
+        >
         <View style={s.content}>
           <View style={s.headerBlock}>
             <Text style={[s.title, { color: theme.colors.text }]}>AI SuperNanny</Text>
@@ -335,7 +337,8 @@ export default function AiSuperNanny() {
             </Pressable>
           </View>
         </View>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </CurvedScreenBody>
     </View>
   );
 }
@@ -350,6 +353,7 @@ const s = StyleSheet.create({
   content: {
     flex: 1,
     padding: 16,
+    paddingTop: 18,
     gap: 14,
   },
   headerBlock: {

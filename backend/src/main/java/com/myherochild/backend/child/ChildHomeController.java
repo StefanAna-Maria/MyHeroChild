@@ -4,6 +4,7 @@ import com.myherochild.backend.child.dto.ChildAssignedRewardResponse;
 import com.myherochild.backend.child.dto.ChildAssignedTaskResponse;
 import com.myherochild.backend.child.dto.ChildDailyBonusResponse;
 import com.myherochild.backend.child.dto.ChildHomeResponse;
+import com.myherochild.backend.child.dto.ChildProfileResponse;
 import com.myherochild.backend.child.dto.ChildRewardsResponse;
 import com.myherochild.backend.child.dto.ChildTaskValidationRequest;
 import com.myherochild.backend.child.dto.ChildTasksResponse;
@@ -37,6 +38,12 @@ public class ChildHomeController {
     public ApiResponse<ChildRewardsResponse> getRewards(Authentication authentication) {
         ChildRewardsResponse response = childHomeService.getRewards(authentication.getName());
         return ApiResponse.success("Child rewards fetched successfully", response);
+    }
+
+    @GetMapping("/profile")
+    public ApiResponse<ChildProfileResponse> getProfile(Authentication authentication) {
+        ChildProfileResponse response = childHomeService.getProfile(authentication.getName());
+        return ApiResponse.success("Child profile fetched successfully", response);
     }
 
     @PostMapping("/rewards/wishlist")
