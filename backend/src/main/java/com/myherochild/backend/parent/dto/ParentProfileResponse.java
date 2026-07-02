@@ -13,6 +13,7 @@ public class ParentProfileResponse {
     private String username;
     private String email;
     private String avatar;
+    private String parentCode;
     private List<ParentChildSummaryResponse> children;
     private List<ClaimedRewardSummaryResponse> claimedRewards;
 }
