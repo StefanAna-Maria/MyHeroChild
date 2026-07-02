@@ -44,6 +44,7 @@ type ParentProfileResponse = {
   username: string;
   email: string;
   avatar: AvatarType;
+  parentCode?: string | null;
   children: ChildSummary[];
   claimedRewards: ClaimedRewardSummary[];
 };
@@ -76,6 +77,7 @@ export default function ParentProfile() {
   const [editingChildId, setEditingChildId] = useState<number | null>(null);
   const [draftChildNickname, setDraftChildNickname] = useState("");
   const [grantingRewardIds, setGrantingRewardIds] = useState<number[]>([]);
+  const [isParentCodeVisible, setIsParentCodeVisible] = useState(false);
 
   const loadProfile = async () => {
     try {
@@ -288,6 +290,31 @@ export default function ParentProfile() {
                     {draftUsername}
                   </Text>
                   <Text style={{ color: theme.colors.textMuted }}>{draftEmail}</Text>
+                  <View style={s.parentCodeRow}>
+                    <Text style={[s.parentCodeLabel, { color: theme.colors.textMuted }]}>
+                      Parent Code
+                    </Text>
+                    <View style={s.parentCodeValueRow}>
+                      <Text style={[s.parentCodeValue, { color: theme.colors.text }]}>
+                        {isParentCodeVisible
+                          ? (profile?.parentCode ?? "-")
+                          : profile?.parentCode
+                            ? "••••••••"
+                            : "-"}
+                      </Text>
+                      <Pressable
+                        onPress={() => setIsParentCodeVisible((current) => !current)}
+                        style={s.parentCodeToggle}
+                        hitSlop={8}
+                      >
+                        <Ionicons
+                          name={isParentCodeVisible ? "eye-off-outline" : "eye-outline"}
+                          size={18}
+                          color={theme.colors.textMuted}
+                        />
+                      </Pressable>
+                    </View>
+                  </View>
                 </>
               )}
             </View>
@@ -662,6 +689,31 @@ const s = StyleSheet.create({
   profileSummary: {
     flex: 1,
     gap: 4,
+  },
+  parentCodeRow: {
+    marginTop: 4,
+    gap: 2,
+  },
+  parentCodeLabel: {
+    fontSize: 12,
+    fontWeight: "700",
+    textTransform: "uppercase",
+    letterSpacing: 0.4,
+  },
+  parentCodeValueRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  parentCodeValue: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  parentCodeToggle: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
   },
   profileEditIconButton: {
     width: 34,

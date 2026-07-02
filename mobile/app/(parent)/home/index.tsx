@@ -4,6 +4,7 @@ import { Ionicons } from "@expo/vector-icons";
 import AppHeader from "../../../components/AppHeader";
 import CurvedScreenBody from "../../../components/CurvedScreenBody";
 import { useTheme } from "../../../src/context/ThemeContext";
+import { useUser } from "../../../src/context/UserContext";
 
 const quickActions = [
   {
@@ -39,6 +40,7 @@ const quickActions = [
 export default function ParentHomeIndex() {
   const router = useRouter();
   const theme = useTheme();
+  const { user } = useUser();
 
   return (
     <View style={[s.screen, { backgroundColor: theme.colors.background }]}>
@@ -47,7 +49,9 @@ export default function ParentHomeIndex() {
       <CurvedScreenBody>
       <ScrollView contentContainerStyle={s.content}>
         <View style={s.heroBlock}>
-          <Text style={[s.heroTitle, { color: theme.colors.text }]}>Welcome back, Parent!</Text>
+          <Text style={[s.heroTitle, { color: theme.colors.text }]}>
+            Welcome back, {user?.username ?? "Parent"}!
+          </Text>
           <Text style={[s.heroSubtitle, { color: theme.colors.textMuted }]}>
             Bring a little more joy, structure, and motivation into your family&apos;s routine.
             Discover inspiring packages, organize your catalogue, manage your children&apos;s

@@ -98,6 +98,7 @@ public class ParentProfileService {
                 .username(parent.getUsername())
                 .email(parent.getEmail())
                 .avatar(parent.getAvatar())
+                .parentCode(parent.getParentCode())
                 .children(children)
                 .claimedRewards(claimedRewards)
                 .build();
