@@ -31,32 +31,15 @@ type ParentProfileResponse = {
   children: ChildSummary[];
 };
 
-const parseAssistantSections = (text: string) => {
-  const sections = text
-    .split(/\n\s*\n/)
-    .map((part) => part.trim())
-    .filter(Boolean);
-
-  if (sections.length <= 1) {
-    return [];
-  }
-
-  return sections.map((section) => {
-    const [firstLine, ...rest] = section.split("\n");
-    const normalizedTitle = firstLine
-      .replace(/^\d+\.\s*/, "")
-      .replace(/:$/, "")
-      .trim();
-
-    return {
-      title: normalizedTitle || "Suggestion",
-      body: rest.join("\n").trim() || firstLine.trim(),
-    };
-  });
-};
+const sanitizeAssistantText = (text: string) =>
+  text
+    .replace(/\*\*/g, "")
+    .replace(/\r\n/g, "\n")
+    .trim();
 
 export default function AiSuperNanny() {
   const theme = useTheme();
+  const aiAccent = "#A899F4";
   const [input, setInput] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [children, setChildren] = useState<ChildSummary[]>([]);
@@ -124,7 +107,9 @@ export default function AiSuperNanny() {
         message: finalMessage,
       });
 
-      const reply = response.data?.data?.reply ?? "I could not generate a response right now.";
+      const reply = sanitizeAssistantText(
+        response.data?.data?.reply ?? "I could not generate a response right now."
+      );
 
       setMessages((current) => [
         ...current,
@@ -172,7 +157,7 @@ export default function AiSuperNanny() {
                     s.childChip,
                     {
                       backgroundColor: selectedChildName === null
-                        ? theme.colors.primary
+                        ? aiAccent
                         : theme.colors.surface,
                       borderColor: theme.colors.border,
                     },
@@ -198,7 +183,7 @@ export default function AiSuperNanny() {
                       style={[
                         s.childChip,
                         {
-                          backgroundColor: isSelected ? theme.colors.primary : theme.colors.surface,
+                          backgroundColor: isSelected ? aiAccent : theme.colors.surface,
                           borderColor: theme.colors.border,
                         },
                       ]}
@@ -246,7 +231,6 @@ export default function AiSuperNanny() {
           >
             {messages.map((message) => {
               const isUser = message.role === "user";
-              const sections = isUser ? [] : parseAssistantSections(message.text);
 
               return (
                 <View
@@ -256,7 +240,7 @@ export default function AiSuperNanny() {
                     isUser ? s.userBubbleAlign : s.assistantBubbleAlign,
                     {
                       backgroundColor: isUser
-                        ? theme.colors.primary
+                        ? aiAccent
                         : theme.colors.surface,
                       borderColor: theme.colors.border,
                     },
@@ -270,30 +254,6 @@ export default function AiSuperNanny() {
                   >
                     {message.text}
                   </Text>
-
-                  {!isUser && sections.length > 1 ? (
-                    <View style={s.responseCardsWrap}>
-                      {sections.map((section) => (
-                        <View
-                          key={`${message.id}-${section.title}`}
-                          style={[
-                            s.responseCard,
-                            {
-                              backgroundColor: theme.colors.surfaceAlt,
-                              borderColor: theme.colors.border,
-                            },
-                          ]}
-                        >
-                          <Text style={[s.responseCardTitle, { color: theme.colors.text }]}>
-                            {section.title}
-                          </Text>
-                          <Text style={[s.responseCardText, { color: theme.colors.textMuted }]}>
-                            {section.body}
-                          </Text>
-                        </View>
-                      ))}
-                    </View>
-                  ) : null}
                 </View>
               );
             })}
@@ -328,7 +288,7 @@ export default function AiSuperNanny() {
               style={[
                 s.sendButton,
                 {
-                  backgroundColor: theme.colors.primary,
+                  backgroundColor: aiAccent,
                   opacity: isSending ? 0.7 : 1,
                 },
               ]}
@@ -425,23 +385,6 @@ const s = StyleSheet.create({
   messageText: {
     fontSize: 15,
     lineHeight: 22,
-  },
-  responseCardsWrap: {
-    gap: 10,
-  },
-  responseCard: {
-    borderWidth: 1,
-    borderRadius: 16,
-    padding: 12,
-    gap: 6,
-  },
-  responseCardTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-  },
-  responseCardText: {
-    fontSize: 14,
-    lineHeight: 21,
   },
   inputBar: {
     borderWidth: 1,
